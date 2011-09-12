@@ -33,6 +33,8 @@ public class SessionFactoryImplTest {
 	@Test
 	public void test() {
 		fail("Not yet implemented");
+		
+		
 	}
 
 }
