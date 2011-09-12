@@ -10,7 +10,7 @@ import org.junit.Test;
 
 /**
  * @author Harold Alcala
- *
+ * asdfasdfsadf
  */
 public class SessionFactoryImplTest {
 
