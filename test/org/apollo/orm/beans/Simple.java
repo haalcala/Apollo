@@ -4,6 +4,10 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author harold
+ *
+ */
 public class Simple {
 	String id;
 	
