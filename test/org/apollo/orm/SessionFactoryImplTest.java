@@ -9,7 +9,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * @author harold
+ * @author Harold Alcala
  *
  */
 public class SessionFactoryImplTest {
