@@ -3,7 +3,7 @@ package org.apollo.orm;
 import java.util.List;
 
 public interface Criteria<T> {
-	List<T> list() throws CassanateException;
+	List<T> list() throws ApolloException;
 	
 	<T> Criteria<T> addCriteria(Expression expr);
 	

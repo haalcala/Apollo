@@ -10,8 +10,8 @@ import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class CassanateHashMapImpl<T> implements Map<String, T> {
-	private static Logger logger = Logger.getLogger(CassanateHashMap.class);
+public class ApolloMapImpl<T> implements Map<String, T> {
+	private static Logger logger = Logger.getLogger(ApolloMap.class);
 
 	private Map<String, T> map;
 	private CassandraColumnFamilyWrapper cf;
@@ -23,7 +23,7 @@ public class CassanateHashMapImpl<T> implements Map<String, T> {
 	private String prop;
 
 	@Autowired
-	public CassanateHashMapImpl(SessionFactory factory, String rowKey, CassandraColumnFamilyWrapper cf, 
+	public ApolloMapImpl(SessionFactory factory, String rowKey, CassandraColumnFamilyWrapper cf, 
 			String prop, Map<String, T> initialData, boolean mapOfMaps) throws SecurityException, NoSuchMethodException {
 		this.factory = factory;
 		this.cf = cf;
@@ -114,7 +114,7 @@ public class CassanateHashMapImpl<T> implements Map<String, T> {
 						cf.insertColumn(getKeyIndexRowKey(rowKey), key.toString(), mapKey);
 					}
 					
-					ret = (T) new CassanateHashMapImpl<String>(factory, mapKey, cf, prop, null, false);
+					ret = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, null, false);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -156,7 +156,7 @@ public class CassanateHashMapImpl<T> implements Map<String, T> {
 				String mapKey = getNewSubKey(rowKey, key);
 				
 				try {
-					cols = (T) new CassanateHashMapImpl<String>(factory, mapKey, cf, prop, (Map<String, String>) value, false);
+					cols = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, (Map<String, String>) value, false);
 
 					value = cols;
 

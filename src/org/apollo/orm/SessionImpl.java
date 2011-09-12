@@ -19,8 +19,8 @@ import net.sf.ehcache.Element;
 
 import org.apache.log4j.Logger;
 
-public class CassanateSessionImpl implements CassanateSession {
-	private static Logger logger = Logger.getLogger(CassanateSessionImpl.class);
+public class SessionImpl implements Session {
+	private static Logger logger = Logger.getLogger(SessionImpl.class);
 	
 	static final String ATTR_CASCADE = "cascade";
 	static final String ATTR_TABLE = "table";
@@ -29,7 +29,7 @@ public class CassanateSessionImpl implements CassanateSession {
 	static final String ATTR_CHILD_TABLE_KEY_SUFFIX = "child-table-key-suffix";
 	static final String ATTR_LAZY_LOADED = "lazy-loaded";
 
-	private static final String CACHE_NAME = "cassanate";
+	private static final String CACHE_NAME = "apollo";
 
 	private SessionFactory factory;
 	
@@ -41,7 +41,7 @@ public class CassanateSessionImpl implements CassanateSession {
 	
 	Map<String, List<String>> lazyLoadedProps;
 
-	public CassanateSessionImpl(SessionFactory factory, CassandraKeyspaceWrapper keyspaceWrapper
+	public SessionImpl(SessionFactory factory, CassandraKeyspaceWrapper keyspaceWrapper
 			, Map<Class<?>, ClassConfig> classToClassConfig, Map<String, ClassConfig> columnFamilyToClassConfig) {
 		this.factory = factory;
 		this.keyspaceWrapper = keyspaceWrapper;
@@ -49,7 +49,7 @@ public class CassanateSessionImpl implements CassanateSession {
 		this.columnFamilyToClassConfig = columnFamilyToClassConfig;
 	}
 
-	public <T> T get(Class<T> clazz, Serializable id) throws CassanateException {
+	public <T> T get(Class<T> clazz, Serializable id) throws ApolloException {
 		ClassConfig cc = getClassConfigUsingClass(clazz);
 		
 		CassandraColumnFamilyWrapper cf = getColumnFamilyUsingClassConfig(cc);
@@ -62,7 +62,7 @@ public class CassanateSessionImpl implements CassanateSession {
 			
 			return ret;
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 	}
 
@@ -312,22 +312,22 @@ public class CassanateSessionImpl implements CassanateSession {
 		}
 	}
 	
-	public <T> T find(Class<T> clazz, Serializable id) throws CassanateException {
+	public <T> T find(Class<T> clazz, Serializable id) throws ApolloException {
 		return find(clazz, id, null);
 	}
 	
-	public <T> T find(Class<T> clazz, Serializable id, Object inverse) throws CassanateException {
+	public <T> T find(Class<T> clazz, Serializable id, Object inverse) throws ApolloException {
 		ClassConfig cc = getClassConfigUsingClass(clazz);
 		
 		if (cc == null)
-			throw new CassanateException("Class " + clazz + " has not been registered.");
+			throw new ApolloException("Class " + clazz + " has not been registered.");
 		
 		CassandraColumnFamilyWrapper cf = getColumnFamilyUsingClassConfig(cc);
 		
 		try {
 			return getEntityUsingId(cf, id, cc, null);
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 	}
 
@@ -336,16 +336,16 @@ public class CassanateSessionImpl implements CassanateSession {
 		return cf;
 	}
 
-	ClassConfig getClassConfigUsingClass(Class clazz) throws CassanateException {
+	ClassConfig getClassConfigUsingClass(Class clazz) throws ApolloException {
 		ClassConfig cc = classToClassConfig.get(clazz);
 		
 		if (cc == null)
-			throw new CassanateException("Class " + clazz + " has not been registered.");
+			throw new ApolloException("Class " + clazz + " has not been registered.");
 		
 		return cc;
 	}
 
-	public <T> List<T> list(Class<T> clazz) throws CassanateException {
+	public <T> List<T> list(Class<T> clazz) throws ApolloException {
 		return new CriteriaImpl<T>(this, clazz).list();
 	}
 
@@ -434,7 +434,7 @@ public class CassanateSessionImpl implements CassanateSession {
 		return ret;
 	}
 
-	public Object save(final Object object) throws CassanateException {
+	public Object save(final Object object) throws ApolloException {
 		if (object == null)
 			throw new NullPointerException();
 		
@@ -551,15 +551,15 @@ public class CassanateSessionImpl implements CassanateSession {
 							
 							if (method_value == null) {
 								if (cc.isMapOfMaps(prop))
-									map = new CassanateHashMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true);
+									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true);
 								else
-									map = new CassanateHashMapImpl<String>(factory, idValue, child_table_cf, prop, null, false);
+									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, null, false);
 							}
 							else {
 								if (cc.isMapOfMaps(prop))
-									map = new CassanateHashMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true);
+									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true);
 								else
-									map = new CassanateHashMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false);
+									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false);
 							}
 							
 							cc.setPropertyMethodValue(object, prop, map);
@@ -653,7 +653,7 @@ public class CassanateSessionImpl implements CassanateSession {
 		} catch (Exception e) {
 			e.printStackTrace();
 			
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 	}
 
@@ -713,7 +713,7 @@ public class CassanateSessionImpl implements CassanateSession {
 		}
 	}
 
-	public void delete(Object object) throws CassanateException {
+	public void delete(Object object) throws ApolloException {
 		try {
 			ClassConfig cc = getClassConfig(object);
 			
@@ -784,7 +784,7 @@ public class CassanateSessionImpl implements CassanateSession {
 			}
 		}
 		catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 	}
 	
@@ -821,7 +821,7 @@ public class CassanateSessionImpl implements CassanateSession {
         return proxifiedObj;
     }
 
-	public void refresh(Object object) throws CassanateException {
+	public void refresh(Object object) throws ApolloException {
 		try {
 			ClassConfig cc = cc = getClassConfig(object);
 			
@@ -829,11 +829,11 @@ public class CassanateSessionImpl implements CassanateSession {
 			
 			// TODO
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		} 
 	}
 
-	public void reconnect(Object object) throws CassanateException {
+	public void reconnect(Object object) throws ApolloException {
 		try {
 			ClassConfig cc = getClassConfig(object);
 			
@@ -841,11 +841,11 @@ public class CassanateSessionImpl implements CassanateSession {
 			
 			// TODO
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		} 
 	}
 
-	public void evict(Object object) throws CassanateException {
+	public void evict(Object object) throws ApolloException {
 		try {
 			ClassConfig cc = getClassConfig(object);
 			
@@ -853,11 +853,11 @@ public class CassanateSessionImpl implements CassanateSession {
 			
 			// TODO
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		} 
 	}
 
-	public void refresh(Object object, String prop) throws CassanateException {
+	public void refresh(Object object, String prop) throws ApolloException {
 		try {
 			ClassConfig cc = getClassConfig(object);
 			
@@ -909,11 +909,11 @@ public class CassanateSessionImpl implements CassanateSession {
 				}
 			}
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		} 
 	}
 
-	public <T> Criteria<T> createCriteria(Class<T> clazz) throws CassanateException {
+	public <T> Criteria<T> createCriteria(Class<T> clazz) throws ApolloException {
 		return new CriteriaImpl<T>(this, clazz);
 	}
 	
@@ -933,7 +933,7 @@ public class CassanateSessionImpl implements CassanateSession {
 		return getClassConfig(object.getClass());
 	}
 	
-	public void truncate(Class<?> clazz) throws CassanateException {
+	public void truncate(Class<?> clazz) throws ApolloException {
 		ClassConfig cc = getClassConfig(clazz);
 		
 		CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(cc.cfName);

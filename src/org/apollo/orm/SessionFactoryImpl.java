@@ -44,11 +44,11 @@ public class SessionFactoryImpl implements SessionFactory {
 	}
 
 
-	public void addClassConfiguration(String pathToXml) throws CassanateException {
+	public void addClassConfiguration(String pathToXml) throws ApolloException {
 		addClassConfiguration(ClassLoader.getSystemResourceAsStream(pathToXml));
 	}
 	
-	public void addClassConfiguration(InputStream is) throws CassanateException {
+	public void addClassConfiguration(InputStream is) throws ApolloException {
 		long ctm = System.currentTimeMillis();
 		try {
 			long ctm2 = System.currentTimeMillis();
@@ -208,7 +208,7 @@ public class SessionFactoryImpl implements SessionFactory {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 		finally {
 			if (logger.isDebugEnabled()) logger.debug("addClassConfiguration - done ["+(System.currentTimeMillis()-ctm)+"ms]");
@@ -221,7 +221,7 @@ public class SessionFactoryImpl implements SessionFactory {
 		return attr == null ? _default : attr.getValue();
 	}
 
-	public void validate() throws CassanateException {
+	public void validate() throws ApolloException {
 		try {
 			keyspaceWrapper = new CassandraKeyspaceWrapper(conf);
 			
@@ -356,18 +356,18 @@ public class SessionFactoryImpl implements SessionFactory {
 						if (cc.methodToProp == null)
 							cc.methodToProp = new HashMap<String, String>();
 
-						cc.methodToProp.put(CassanateSessionImpl.getGetMethodFromProperty(prop), prop);
-						cc.methodToProp.put(CassanateSessionImpl.getSetMethodFromProperty(prop), prop);
+						cc.methodToProp.put(SessionImpl.getGetMethodFromProperty(prop), prop);
+						cc.methodToProp.put(SessionImpl.getSetMethodFromProperty(prop), prop);
 					}
 				}
 			}
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 	}
 
-	public CassanateSession getSession() {
-		CassanateSession session = new CassanateSessionImpl(this, keyspaceWrapper, classToClassConfig, columnToClassConfig);
+	public Session getSession() {
+		Session session = new SessionImpl(this, keyspaceWrapper, classToClassConfig, columnToClassConfig);
 		
 		return session;
 	}

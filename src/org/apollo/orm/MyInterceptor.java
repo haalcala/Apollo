@@ -50,14 +50,14 @@ public class MyInterceptor implements MethodInterceptor {
 
 			boolean mapOfMaps = classConfig.isMapOfMaps(prop);
 
-			CassanateSessionImpl session = (CassanateSessionImpl) factory.getSession();
+			SessionImpl session = (SessionImpl) factory.getSession();
 
 			String idValue = (String) classConfig.getIdValue(realObj);
 
 			Map<String, String> method_config = classConfig.getMethodConfig(prop);
 
-			String table = method_config.get(CassanateSessionImpl.ATTR_TABLE);
-			String child_table_key_suffix = method_config.get(CassanateSessionImpl.ATTR_CHILD_TABLE_KEY_SUFFIX);
+			String table = method_config.get(SessionImpl.ATTR_TABLE);
+			String child_table_key_suffix = method_config.get(SessionImpl.ATTR_CHILD_TABLE_KEY_SUFFIX);
 
 			CassandraColumnFamilyWrapper child_table_cf = session.getSessionFactory().getCassandraColumnFamilyWrapper(table);
 
@@ -73,9 +73,9 @@ public class MyInterceptor implements MethodInterceptor {
 					CassandraColumnFamilyWrapper hashmap_cf = child_table_cf != null ? child_table_cf : cf;
 					
 					if (mapOfMaps)
-						map = new CassanateHashMapImpl<Map<String, String>>(factory, idValue, hashmap_cf, prop, (Map<String, Map<String, String>>) map, mapOfMaps);
+						map = new ApolloMapImpl<Map<String, String>>(factory, idValue, hashmap_cf, prop, (Map<String, Map<String, String>>) map, mapOfMaps);
 					else
-						map = new CassanateHashMapImpl<String>(factory, idValue, hashmap_cf, prop, (Map<String, String>) map, mapOfMaps);
+						map = new ApolloMapImpl<String>(factory, idValue, hashmap_cf, prop, (Map<String, String>) map, mapOfMaps);
 				}
 
 				objects[0] = map;
@@ -97,10 +97,10 @@ public class MyInterceptor implements MethodInterceptor {
 					Map<String, ?> map = null;
 					
 					if (mapOfMaps) {
-						map = new CassanateHashMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
+						map = new ApolloMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
 					}
 					else {
-						map = new CassanateHashMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
+						map = new ApolloMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
 					}
 
 					classConfig.setPropertyMethodValue(realObj, prop, map);
@@ -112,16 +112,16 @@ public class MyInterceptor implements MethodInterceptor {
 			}
 
 			if (ensure_lazy_loaded_prop_entry) {
-				if (((CassanateSessionImpl) session).lazyLoadedProps == null)
-					((CassanateSessionImpl) session).lazyLoadedProps = new HashMap<String, List<String>>();
+				if (((SessionImpl) session).lazyLoadedProps == null)
+					((SessionImpl) session).lazyLoadedProps = new HashMap<String, List<String>>();
 
-				String cache_key = ((CassanateSessionImpl) session).getCacheKey(classConfig.clazz, idValue);
+				String cache_key = ((SessionImpl) session).getCacheKey(classConfig.clazz, idValue);
 
-				List<String> list = ((CassanateSessionImpl) session).lazyLoadedProps.get(cache_key);
+				List<String> list = ((SessionImpl) session).lazyLoadedProps.get(cache_key);
 
 				if (list == null) {
 					list = new ArrayList<String>();
-					((CassanateSessionImpl) session).lazyLoadedProps.put(cache_key, list);
+					((SessionImpl) session).lazyLoadedProps.put(cache_key, list);
 				}
 
 				if (!list.contains(prop)) {

@@ -53,7 +53,7 @@ class ClassConfig {
 		Serializable ret = null;
 		
 		if (idGetMethod == null)
-			idGetMethod = clazz.getMethod(CassanateSessionImpl.getGetMethodFromProperty(idMethod), null);
+			idGetMethod = clazz.getMethod(SessionImpl.getGetMethodFromProperty(idMethod), null);
 		
 		ret = (Serializable) idGetMethod.invoke(instance, null);
 		
@@ -62,7 +62,7 @@ class ClassConfig {
 	
 	void setIdValue(Object instance, Serializable value) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		if (idSetMethod == null)
-			idSetMethod = clazz.getMethod(CassanateSessionImpl.getSetMethodFromProperty(idMethod), new Class<?>[] {value.getClass()});
+			idSetMethod = clazz.getMethod(SessionImpl.getSetMethodFromProperty(idMethod), new Class<?>[] {value.getClass()});
 		
 		idSetMethod.invoke(instance, new Object[] {value});
 	}
@@ -71,7 +71,7 @@ class ClassConfig {
 		Method method = propGetMethods == null ? null : propGetMethods.get(prop);
 		
 		if (method == null) {
-			method = clazz.getMethod(CassanateSessionImpl.getGetMethodFromProperty(prop), null);
+			method = clazz.getMethod(SessionImpl.getGetMethodFromProperty(prop), null);
 			
 			if (propGetMethods == null)
 				propGetMethods = new HashMap<String, Method>();
@@ -86,7 +86,7 @@ class ClassConfig {
 		Method method = propSetMethods == null ? null : propSetMethods.get(prop);
 		
 		if (method == null) {
-			method = clazz.getMethod(CassanateSessionImpl.getSetMethodFromProperty(prop), new Class<?>[] {getPropertyType(prop)});
+			method = clazz.getMethod(SessionImpl.getSetMethodFromProperty(prop), new Class<?>[] {getPropertyType(prop)});
 			
 			if (propSetMethods == null)
 				propSetMethods = new HashMap<String, Method>();
@@ -156,12 +156,12 @@ class ClassConfig {
 		return kvp == null ? null : kvp.get(config);
 	}
 	
-	void validate() throws CassanateException {
+	void validate() throws ApolloException {
 		if (methodConfig == null)
-			throw new CassanateException("Must define at least one method");
+			throw new ApolloException("Must define at least one method");
 		
 		if (methodConfig.get(idMethod) == null)
-			throw new CassanateException("No id field defined");
+			throw new ApolloException("No id field defined");
 	}
 	
 	Set<String> getMethods() {

@@ -6,16 +6,16 @@ import net.sf.ehcache.CacheManager;
 
 public interface SessionFactory {
 
-	void addClassConfiguration(String pathToXml) throws CassanateException;
-	void addClassConfiguration(InputStream is) throws CassanateException;
+	void addClassConfiguration(String pathToXml) throws ApolloException;
+	void addClassConfiguration(InputStream is) throws ApolloException;
 
-	void validate() throws CassanateException;
+	void validate() throws ApolloException;
 	
 	CassandraColumnFamilyWrapper getCassandraColumnFamilyWrapper(String columnFamily);
 	
 	CassandraKeyspaceWrapper getCassandraKeyspaceWrapper();
 	
-	CassanateSession getSession();
+	Session getSession();
 	
 	CacheManager getCacheManager();
 	

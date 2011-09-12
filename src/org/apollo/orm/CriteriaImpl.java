@@ -5,7 +5,7 @@ import java.util.List;
 
 public class CriteriaImpl<T> implements Criteria<T> {
 	
-	private CassanateSessionImpl session;
+	private SessionImpl session;
 	
 	private List<Order> orders;
 	
@@ -15,12 +15,12 @@ public class CriteriaImpl<T> implements Criteria<T> {
 
 	private Class<T> clazz;
 
-	public CriteriaImpl(CassanateSessionImpl session, Class<T> clazz) {
+	public CriteriaImpl(SessionImpl session, Class<T> clazz) {
 		this.session = session;
 		this.clazz = clazz;
 	}
 
-	public List<T> list() throws CassanateException {
+	public List<T> list() throws ApolloException {
 		ClassConfig cc = session.getClassConfigUsingClass(clazz);
 		
 		CassandraColumnFamilyWrapper cf = session.getColumnFamilyUsingClassConfig(cc);
@@ -41,7 +41,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 			
 			return ret;
 		} catch (Exception e) {
-			throw new CassanateException(e);
+			throw new ApolloException(e);
 		}
 	}
 

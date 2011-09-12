@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<hibernate-mapping>
+    <class name="net.ipop.analytics.client.beans.Simple" table="Parent">
+        <id name="id" unsaved-value="null" >
+            <column name="id" not-null="true"/>
+
+            <generator class="native"/>
+        </id>
+
+		<property name="stringProp" />
+
+		<property name="timestampProp" />
+
+		<property name="intProp" />
+
+		<property name="longProp" />
+
+		<property name="doubleProp" />
+
+		<property name="byteProp" />
+
+		<property name="booleanProp" />
+
+		<property name="listProp" />
+
+		<property name="mapProp" />
+
+		<property name="mapWithTablename" />
+
+		<property name="mapWithTablenameAndLazyLoaded" />
+
+		<property name="mapOfMaps" />
+
+		<property name="stringPropWithColumn" column="stringPropColumn" />
+
+		<property name="timestampPropWithColumn" column="timestampPropColumn" />
+
+		<property name="intPropWithColumn" column="intPropColumn" />
+
+		<property name="longPropWithColumn" column="longPropColumn" />
+
+		<property name="doublePropWithColumn" column="doublePropColumn" />
+
+		<property name="bytePropWithColumn" column="bytePropColumn" />
+
+		<property name="booleanPropWithColumn" column="booleanPropColumn" />
+
+		<property name="listPropWithColumn" column="listPropColumn" />
+
+		<property name="mapPropWithColumn" column="mapPropColumn" />
+    </class>
+</hibernate-mapping>

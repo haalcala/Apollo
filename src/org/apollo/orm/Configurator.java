@@ -9,11 +9,11 @@ public class Configurator {
 		sessionFactory = new SessionFactoryImpl(conf);
 	}
 	
-	public void addClassConfiguration(String pathToXml) throws CassanateException {
+	public void addClassConfiguration(String pathToXml) throws ApolloException {
 		sessionFactory.addClassConfiguration(pathToXml);
 	}
 	
-	public SessionFactory configure() throws CassanateException {
+	public SessionFactory configure() throws ApolloException {
 		sessionFactory.validate();
 		
 		return sessionFactory;
