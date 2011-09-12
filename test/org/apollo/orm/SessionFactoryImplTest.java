@@ -23,7 +23,7 @@ public class SessionFactoryImplTest {
 	}
 
 	@Before
-	public void setUp() throws Exception {
+	public void setUp() throws Exception { 
 	}
 
 	@After
