@@ -13,9 +13,12 @@ import java.util.Properties;
 import java.util.Set;
 
 import me.prettyprint.cassandra.service.ThriftCluster;
+import me.prettyprint.hector.api.ddl.ColumnIndexType;
+import me.prettyprint.hector.api.ddl.ComparatorType;
 import net.sf.ehcache.CacheManager;
 
 import org.apache.cassandra.db.marshal.TimeUUIDType;
+import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.log4j.Logger;
 import org.jdom.Attribute;
 import org.jdom.Document;
@@ -228,17 +231,24 @@ public class SessionFactoryImpl implements SessionFactory {
 			if (classToClassConfig == null)
 				return;
 			
-			for (ClassConfig classConfig : classToClassConfig.values()) {
-				CassandraColumnFamilyWrapper cf = getCassandraColumnFamilyWrapper(classConfig.cfName);
+			for (ClassConfig cc : classToClassConfig.values()) {
+				CassandraColumnFamilyWrapper cf = getCassandraColumnFamilyWrapper(cc.cfName);
 				
 				if (!cf.columnFamilyExists())
 					cf.createColumnFamily();
 				
-				Set<String> methods = classConfig.getMethods();
+				if (logger.isDebugEnabled())
+					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed("__rstat__"));
+				
+				if (!cf.isColumnIndexed("__rstat__"))
+					cf.updateColumnFamilyMetaData("__rstat__", ColumnIndexType.KEYS, ComparatorType.UTF8TYPE);
+
+				Set<String> methods = cc.getMethods();
 				
 				if (methods != null) {
 					for (String prop : methods) {
-						String table = classConfig.getMethodConfig(prop).get("table");
+						String table = cc.getMethodConfig(prop).get("table");
+						
 						if (table != null) {
 							cf = getCassandraColumnFamilyWrapper(table);
 
@@ -362,6 +372,8 @@ public class SessionFactoryImpl implements SessionFactory {
 				}
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
+			
 			throw new ApolloException(e);
 		}
 	}

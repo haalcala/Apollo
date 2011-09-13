@@ -5,7 +5,7 @@ import java.util.List;
 public interface Criteria<T> {
 	List<T> list() throws ApolloException;
 	
-	<T> Criteria<T> addCriteria(Expression expr);
+	<T> Criteria<T> add(Expression expr);
 	
 	void setMaxResults(int maxResults);
 	

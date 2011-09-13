@@ -1,7 +1,9 @@
 package org.apollo.orm;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CriteriaImpl<T> implements Criteria<T> {
 	
@@ -28,14 +30,35 @@ public class CriteriaImpl<T> implements Criteria<T> {
 		List<T> ret = new ArrayList<T>();
 		
 		try {
-			List<String> keys = session.getKeyList(cf, "");
-			
-			if (keys != null && keys.size() > 0) {
-				for (String key : keys) {
-					T t = session.find(clazz, key);
+			if (criterias == null) {
+				List<String> keys = session.getKeyList(cf, "");
 
-					if (t != null)
-						ret.add(t);
+				if (keys != null && keys.size() > 0) {
+					for (String key : keys) {
+						T t = session.find(clazz, key);
+
+						if (t != null)
+							ret.add(t);
+					}
+				}
+			}
+			else {
+				Map<String, String> kvp = new LinkedHashMap<String, String>();
+				
+				for (Expression exp : criterias) {
+					if (exp.getOperation().equals(Expression.OPERATION_EQ)) {
+						kvp.put(exp.getProperty(), exp.getExpected().toString());
+					}
+				}
+				
+				kvp.put("__rstat__", "1");
+				
+				Map<String, Map<String, String>> rows = cf.findColumnWithValue(kvp);
+				
+				for (String rowKey : rows.keySet()) {
+					Map<String, String> cols = rows.get(rowKey);
+					
+					ret.add((T) session.colsToObject(rowKey, cols, cc, null));
 				}
 			}
 			
@@ -45,7 +68,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 		}
 	}
 
-	public Criteria<T> addCriteria(Expression expr) {
+	public Criteria<T> add(Expression expr) {
 		if (criterias == null)
 			criterias = new ArrayList<Expression>();
 		

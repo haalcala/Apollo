@@ -4,15 +4,19 @@ import static me.prettyprint.hector.api.factory.HFactory.createRangeSuperSlicesQ
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import me.prettyprint.cassandra.model.BasicColumnDefinition;
+import me.prettyprint.cassandra.model.BasicColumnFamilyDefinition;
 import me.prettyprint.cassandra.model.IndexedSlicesQuery;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.ThriftCfDef;
+import me.prettyprint.cassandra.service.ThriftCluster;
 import me.prettyprint.cassandra.service.ThriftColumnDef;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.ColumnSlice;
@@ -26,6 +30,7 @@ import me.prettyprint.hector.api.beans.SuperRow;
 import me.prettyprint.hector.api.beans.SuperSlice;
 import me.prettyprint.hector.api.ddl.ColumnDefinition;
 import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
+import me.prettyprint.hector.api.ddl.ColumnIndexType;
 import me.prettyprint.hector.api.ddl.ColumnType;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
@@ -192,6 +197,63 @@ public class CassandraColumnFamilyWrapper {
 			
 			keyspaceWrapper.getCluster().updateColumnFamily(cfDef);
 		}
+	}
+	
+	public void updateColumnFamilyMetaData(String column, ColumnIndexType indexType, ComparatorType comparator) throws ApolloException {
+		ThriftCluster cassandraCluster = keyspaceWrapper.getCluster();
+
+		KeyspaceDefinition fromCluster = cassandraCluster.describeKeyspace(keyspace.getKeyspaceName());
+
+		List<ColumnFamilyDefinition> cfDefs = fromCluster.getCfDefs();
+
+		for (ColumnFamilyDefinition cfDef : cfDefs) {
+			if (cfDef.getName().equals(columnFamily)) {
+				BasicColumnFamilyDefinition columnFamilyDefinition = new BasicColumnFamilyDefinition(cfDef);
+				BasicColumnDefinition columnDefinition = new BasicColumnDefinition();
+
+				columnDefinition.setName(StringSerializer.get().toByteBuffer(column));
+				columnDefinition.setIndexType(indexType);
+				columnDefinition.setValidationClass(comparator.getClassName());
+
+				columnFamilyDefinition.addColumnDefinition(columnDefinition);
+
+				try {
+					cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition));
+
+					if (logger.isDebugEnabled())
+						logger.debug("Succesfully added column index for column '" + column + "'");
+				} catch (Exception e) {
+					if (e.getMessage().indexOf("Duplicate index") == -1) {
+						throw new ApolloException(e);
+					}
+				}
+				
+				break;
+			}
+		}
+	}
+	
+	public boolean isColumnIndexed(String column) {
+		ThriftCluster cassandraCluster = keyspaceWrapper.getCluster();
+		
+		KeyspaceDefinition fromCluster = cassandraCluster.describeKeyspace(keyspace.getKeyspaceName());
+		
+		List<ColumnFamilyDefinition> cfDefs = fromCluster.getCfDefs();
+		
+		for (ColumnFamilyDefinition cfDef : cfDefs) {
+			if (cfDef.getName().equals(columnFamily)) {
+				List<ColumnDefinition> colDefs = cfDef.getColumnMetadata();
+				
+				for (ColumnDefinition colDef : colDefs) {
+					String col = StringSerializer.get().fromByteBuffer(colDef.getName());
+					
+					if (col.equals(column))
+						return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 	
 	private ColumnDef newIndexedColumnDef(String column_name, String comparer) {

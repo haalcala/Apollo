@@ -434,7 +434,7 @@ public class SessionImpl implements Session {
 		return ret;
 	}
 
-	public Object save(final Object object) throws ApolloException {
+	public <T> T save(final T object) throws ApolloException {
 		if (object == null)
 			throw new NullPointerException();
 		
@@ -939,5 +939,27 @@ public class SessionImpl implements Session {
 		CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(cc.cfName);
 		
 		cf.truncate();
+	}
+	
+	public <T> List<Serializable> getKeyList(Class<T> clazz, String startKey) throws Exception {
+		ClassConfig cc = getClassConfig(clazz);
+		
+		List<Serializable> ret = null;
+		
+		List<T> list = factory.getSession().createCriteria(clazz).list();
+		
+		if (list != null && list.size() > 0) {
+			if (ret == null)
+				ret = new ArrayList<Serializable>();
+			
+			for (T datasource : list) {
+				ret.add(cc.getIdValue(datasource));
+			}
+		}
+		
+		return ret;
+	}
+
+	public void flush() {
 	}
 }
