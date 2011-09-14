@@ -628,23 +628,35 @@ public class SessionImpl implements Session {
 				if (rowsToSave == null) 
 					rowsToSave = new LinkedHashMap<String, Map<String, String>>();
 				
-				Map<String, String> cols = rowsToSave.get(prop);
+				Map<String, String> cols = rowsToSave.get(idValue);
 				
 				if (cols == null) {
 					cols = new LinkedHashMap<String, String>();
-					rowsToSave.put(prop, cols);
+					rowsToSave.put(idValue, cols);
 				}
 				
 				if (value != null)
 					cols.put(column, value.toString());
 			}
 			
-			if (rowsToSave != null) {
+			if (rowsToSave != null) {	
 				for (String rowKey : rowsToSave.keySet()) {
 					Map<String, String> cols = rowsToSave.get(rowKey);
+					
 					for (String col : cols.keySet()) {
 						cf.insertColumn(idValue, col, cols.get(col));
 					}
+
+					String _rstat = cf.getColumnValue(idValue, "__rstat__");
+					
+					int rstat = 0;
+					
+					try {
+						rstat = Integer.parseInt(_rstat);
+					} catch (Exception e) {
+					}
+					
+					cf.insertColumn(idValue, "__rstat__", "" + rstat);
 				}
 			}
 			

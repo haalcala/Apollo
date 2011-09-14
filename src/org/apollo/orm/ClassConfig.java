@@ -48,6 +48,8 @@ class ClassConfig {
 	Map<String, String> methodToProp;
 	
 	List<String> mapOfMaps;
+
+	private String[] colsAsArray;
 	
 	Serializable getIdValue(Object instance) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		Serializable ret = null;
@@ -186,6 +188,22 @@ class ClassConfig {
 	
 	public Class getPropertyType(String propertyName) {
 		return propertyType.get(propertyName);
+	}
+	
+	public String[] getColumnsAsArray() {
+		if (colsAsArray == null) {
+			colsAsArray = new String[methodConfig.size()];
+			
+			int colsi = 0;
+			
+			for (String prop : methodConfig.keySet()) {
+				Map<String, String> method_config = methodConfig.get(prop);
+				
+				colsAsArray[colsi++] = method_config.get("column");
+			}
+		}
+		
+		return colsAsArray;
 	}
 	
 	public boolean isMapOfMaps(String prop) {

@@ -208,13 +208,20 @@ public class CassandraColumnFamilyWrapper {
 
 		for (ColumnFamilyDefinition cfDef : cfDefs) {
 			if (cfDef.getName().equals(columnFamily)) {
+				
 				BasicColumnFamilyDefinition columnFamilyDefinition = new BasicColumnFamilyDefinition(cfDef);
+				
 				BasicColumnDefinition columnDefinition = new BasicColumnDefinition();
 
 				columnDefinition.setName(StringSerializer.get().toByteBuffer(column));
-				columnDefinition.setIndexType(indexType);
+				
+				if (indexType == ColumnIndexType.KEYS) {
+					columnDefinition.setIndexName(column);
+					columnDefinition.setIndexType(indexType);
+				}
+				
 				columnDefinition.setValidationClass(comparator.getClassName());
-
+				
 				columnFamilyDefinition.addColumnDefinition(columnDefinition);
 
 				try {
@@ -587,23 +594,21 @@ public class CassandraColumnFamilyWrapper {
 		return ret;
 	}
 	
-	public Map<String, Map<String, String>> findColumnWithValue(Map<String, String> kvp) {
+	public Map<String, Map<String, String>> findColumnWithValue(Map<String, String> kvp, String[] column_names) {
 		Map<String, Map<String, String>> ret = null;
 
 		IndexedSlicesQuery<String, String, String> q = HFactory.createIndexedSlicesQuery(keyspace, stringSerializer, stringSerializer, stringSerializer);
 		
 		q.setColumnFamily(columnFamily);
 		
-		String[] _cols = new String[kvp.size()];
-		int _colsi = 0;
-		
 		for (String col : kvp.keySet()) {
-			_cols[_colsi++] = col;
+			if (logger.isDebugEnabled())
+				logger.debug("col: " + col + " val: " + kvp.get(col));
 			
 			q.addEqualsExpression(col, kvp.get(col));
 		}
 		
-		q.setColumnNames(_cols);
+		q.setColumnNames(column_names);
 		
 		QueryResult<OrderedRows<String, String, String>> r = q.execute();
 		

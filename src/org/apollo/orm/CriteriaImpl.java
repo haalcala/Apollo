@@ -5,7 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 public class CriteriaImpl<T> implements Criteria<T> {
+	private static Logger logger = Logger.getLogger(CriteriaImpl.class);
 	
 	private SessionImpl session;
 	
@@ -51,14 +54,27 @@ public class CriteriaImpl<T> implements Criteria<T> {
 					}
 				}
 				
-				kvp.put("__rstat__", "1");
+				kvp.put("__rstat__", "0");
 				
-				Map<String, Map<String, String>> rows = cf.findColumnWithValue(kvp);
+				Map<String, Map<String, String>> rows = cf.findColumnWithValue(kvp, cc.getColumnsAsArray());
 				
-				for (String rowKey : rows.keySet()) {
-					Map<String, String> cols = rows.get(rowKey);
-					
-					ret.add((T) session.colsToObject(rowKey, cols, cc, null));
+				if (logger.isDebugEnabled())
+					logger.debug("rows: " + rows);
+				
+				if (rows != null && rows.size() > 0) {
+					for (String rowKey : rows.keySet()) {
+						Map<String, String> cols = rows.get(rowKey);
+						
+						if (logger.isDebugEnabled())
+							logger.debug("cols: " + cols);
+						
+						Object object = session.colsToObject(rowKey, cols, cc, null);
+						
+						if (logger.isDebugEnabled())
+							logger.debug("object: " + object);
+
+						ret.add((T) object);
+					}
 				}
 			}
 			
