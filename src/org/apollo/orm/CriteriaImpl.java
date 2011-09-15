@@ -12,6 +12,8 @@ import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
+import org.apache.log4j.Logger;
+
 public class CriteriaImpl<T> implements Criteria<T> {
 	private static Logger logger = Logger.getLogger(CriteriaImpl.class);
 	
