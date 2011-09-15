@@ -3,6 +3,9 @@ package org.apollo.orm;
 import static me.prettyprint.hector.api.factory.HFactory.createRangeSuperSlicesQuery;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -10,6 +13,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import me.prettyprint.cassandra.model.BasicColumnDefinition;
 import me.prettyprint.cassandra.model.BasicColumnFamilyDefinition;
@@ -208,13 +212,20 @@ public class CassandraColumnFamilyWrapper {
 
 		for (ColumnFamilyDefinition cfDef : cfDefs) {
 			if (cfDef.getName().equals(columnFamily)) {
+				
 				BasicColumnFamilyDefinition columnFamilyDefinition = new BasicColumnFamilyDefinition(cfDef);
+				
 				BasicColumnDefinition columnDefinition = new BasicColumnDefinition();
 
 				columnDefinition.setName(StringSerializer.get().toByteBuffer(column));
-				columnDefinition.setIndexType(indexType);
+				
+				if (indexType == ColumnIndexType.KEYS) {
+					columnDefinition.setIndexName(column);
+					columnDefinition.setIndexType(indexType);
+				}
+				
 				columnDefinition.setValidationClass(comparator.getClassName());
-
+				
 				columnFamilyDefinition.addColumnDefinition(columnDefinition);
 
 				try {
@@ -587,23 +598,104 @@ public class CassandraColumnFamilyWrapper {
 		return ret;
 	}
 	
-	public Map<String, Map<String, String>> findColumnWithValue(Map<String, String> kvp) {
+	public Map<String, Map<String, String>> findColumnWithValue(List<Expression> criterias, Session session, ClassConfig classConfig, ArrayList<String> arrayList) throws SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 		Map<String, Map<String, String>> ret = null;
 
 		IndexedSlicesQuery<String, String, String> q = HFactory.createIndexedSlicesQuery(keyspace, stringSerializer, stringSerializer, stringSerializer);
 		
 		q.setColumnFamily(columnFamily);
 		
-		String[] _cols = new String[kvp.size()];
-		int _colsi = 0;
-		
-		for (String col : kvp.keySet()) {
-			_cols[_colsi++] = col;
+		for (Expression exp : criterias) {
+			String prop = exp.getProperty();
 			
-			q.addEqualsExpression(col, kvp.get(col));
+			boolean special = prop.startsWith("__") && prop.endsWith("__");
+			
+			Map<String, String> methodConfig = classConfig.getMethodConfig(prop);
+			
+			if (methodConfig == null && !special)
+				throw new IllegalArgumentException("Uknown property '" + prop + "' for class " + classConfig.clazz);
+			
+			String column = special ? prop : methodConfig.get("column");
+			
+			String expected = null;
+			
+			if (!special) {
+				if (methodConfig == null)
+					throw new IllegalArgumentException("Undefined property '" + prop + "' for class '" + classConfig.clazz + "'");
+			
+				String child_table_name = methodConfig.get("table");
+				
+				Class propType = classConfig.getPropertyType(prop);
+				
+				if (propType == Integer.TYPE
+						|| propType == Long.TYPE
+						|| propType == Short.TYPE
+						|| propType == Double.TYPE
+						|| propType == Float.TYPE
+						|| propType == Byte.TYPE
+						|| propType == String.class
+						) {
+					expected = exp.getExpected().toString();
+				}
+				else if (propType == Timestamp.class) {
+					// TODO
+					throw new IllegalArgumentException("feature not implemented yet");
+				}
+				else if (propType == List.class) {
+					// TODO
+					throw new IllegalArgumentException("feature not implemented yet");
+				}
+				else if (propType == Map.class) {
+					// TODO
+					throw new IllegalArgumentException("feature not implemented yet");
+				}
+				else if (propType == Set.class) {
+					// TODO
+					throw new IllegalArgumentException("feature not implemented yet");
+				}
+				else {
+					ClassConfig child_classConfig = ((SessionImpl) session).getClassConfig(propType, false);
+					
+					if (child_classConfig != null) {
+						Serializable idValue = child_classConfig.getIdValue(exp.getExpected());
+						
+						expected = idValue.toString();
+					}
+					else {
+						throw new IllegalArgumentException("Unhandled condition");
+					}
+				}
+			}
+			else {
+				expected = exp.getExpected().toString();
+			}
+			
+			if (logger.isDebugEnabled())
+				logDebug("prop: "+prop+" col: " + column + " exp: " + expected + " opr: " + exp.getOperation());
+			
+			if (exp.getOperation().equals(Expression.OPERATION_EQ))
+				q.addEqualsExpression(column, expected);
+			else if (exp.getOperation().equals(Expression.OPERATION_GT))
+				q.addGtExpression(column, expected);
+			else if (exp.getOperation().equals(Expression.OPERATION_GTE))
+				q.addGteExpression(column, expected);
+			else if (exp.getOperation().equals(Expression.OPERATION_LT))
+				q.addLtExpression(column, expected);
+			else if (exp.getOperation().equals(Expression.OPERATION_LTE))
+				q.addLteExpression(column, expected);
 		}
 		
-		q.setColumnNames(_cols);
+		if (logger.isDebugEnabled()) {
+			logger.debug("column_names: " + arrayList);
+			
+			if (arrayList != null) {
+				for (String string : arrayList) {
+					logger.debug("string: " + string);
+				}
+			}
+		}
+		
+		q.setColumnNames(arrayList);
 		
 		QueryResult<OrderedRows<String, String, String>> r = q.execute();
 		
@@ -719,7 +811,8 @@ public class CassandraColumnFamilyWrapper {
 			
 		final Map<String, Map<String, String>> ret = new LinkedHashMap<String, Map<String,String>>();
 		
-		logDebug("Retrieving colums as map: startKey: '" + startKey + "' startColumn: '" + startColumn + "' maxRows: " + maxRows + " maxCols: " + maxColumns);
+		if (logger.isDebugEnabled())
+			logDebug("Retrieving colums as map: startKey: '" + startKey + "' startColumn: '" + startColumn + "' maxRows: " + maxRows + " maxCols: " + maxColumns);
 		
 		class Counter {
 			int tmpRowCount;
@@ -785,7 +878,8 @@ public class CassandraColumnFamilyWrapper {
 						
 						assertNotNull(cols);
 
-						log("START ROW: RowKey: " + rowKey + " tmpRowCount: " + c.tmpRowCount);
+						if (logger.isDebugEnabled())
+							log("START ROW: RowKey: " + rowKey + " tmpRowCount: " + c.tmpRowCount);
 					}
 
 					@Override
@@ -799,14 +893,16 @@ public class CassandraColumnFamilyWrapper {
 
 							rowKeyLastCol.put(c._startKey, col);
 
-							log("Row Key: " + c._startKey + " col: " + col + " tmpColCount: " + c.tmpColCount + ". Skipping.");
+							if (logger.isDebugEnabled())
+								logDebug("Row Key: " + c._startKey + " col: " + col + " tmpColCount: " + c.tmpColCount + ". Skipping.");
 
 							return;
 						}
 
 						cols.put(col, val);
 						
-						log("Row Key: " + c._startKey + " col: " + col + " tmpColCount: " + c.tmpColCount);
+						if (logger.isDebugEnabled())
+							log("Row Key: " + c._startKey + " col: " + col + " tmpColCount: " + c.tmpColCount);
 					}
 
 					@Override
@@ -838,7 +934,8 @@ public class CassandraColumnFamilyWrapper {
 			
 		} while (rowKeyLastCol.size() > 0);
 		
-		logDebug("Returning: " + (ret != null ? ret.size() + " records " : "") + "contents: " + ret);
+		if (logger.isDebugEnabled())
+			logDebug("Returning: " + (ret != null ? ret.size() + " records " : "") + "contents: " + ret);
 		
 		return ret.size() > 0 ? ret : null;
 	}

@@ -1,11 +1,19 @@
 package org.apollo.orm;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+import org.apache.log4j.Logger;
 
 public class CriteriaImpl<T> implements Criteria<T> {
+	private static Logger logger = Logger.getLogger(CriteriaImpl.class);
 	
 	private SessionImpl session;
 	
@@ -17,12 +25,17 @@ public class CriteriaImpl<T> implements Criteria<T> {
 
 	private Class<T> clazz;
 
+	private List<T> ret;
+
 	public CriteriaImpl(SessionImpl session, Class<T> clazz) {
 		this.session = session;
 		this.clazz = clazz;
 	}
 
-	public List<T> list() throws ApolloException {
+	synchronized public List<T> list() throws ApolloException {
+		if (ret != null)
+			return ret;
+		
 		ClassConfig cc = session.getClassConfigUsingClass(clazz);
 		
 		CassandraColumnFamilyWrapper cf = session.getColumnFamilyUsingClassConfig(cc);
@@ -43,24 +56,31 @@ public class CriteriaImpl<T> implements Criteria<T> {
 				}
 			}
 			else {
-				Map<String, String> kvp = new LinkedHashMap<String, String>();
+				add(Expression.eq("__rstat__", "0"));
 				
-				for (Expression exp : criterias) {
-					if (exp.getOperation().equals(Expression.OPERATION_EQ)) {
-						kvp.put(exp.getProperty(), exp.getExpected().toString());
+				Map<String, Map<String, String>> rows = cf.findColumnWithValue(criterias, session, cc, cc.getColumnsAsList());
+				
+				if (rows != null && rows.size() > 0) {
+					List<String> orderedKeys = null;
+					
+					if (orders != null && orders.size() > 0) {
+						orderedKeys = getOrderedKeys(orders, rows);
+					}
+					else {
+						orderedKeys = new ArrayList<String>(rows.keySet());
+					}
+					
+					for (String rowKey : orderedKeys) {
+						Map<String, String> cols = rows.get(rowKey);
+						
+						Object object = session.colsToObject(rowKey, cols, cc, null);
+						
+						ret.add((T) object);
 					}
 				}
-				
-				kvp.put("__rstat__", "1");
-				
-				Map<String, Map<String, String>> rows = cf.findColumnWithValue(kvp);
-				
-				for (String rowKey : rows.keySet()) {
-					Map<String, String> cols = rows.get(rowKey);
-					
-					ret.add((T) session.colsToObject(rowKey, cols, cc, null));
-				}
 			}
+			
+			this.ret = ret;
 			
 			return ret;
 		} catch (Exception e) {
@@ -68,7 +88,109 @@ public class CriteriaImpl<T> implements Criteria<T> {
 		}
 	}
 
-	public Criteria<T> add(Expression expr) {
+	static List<String> getOrderedKeys(List<Order> orders, Map<String, Map<String, String>> rows) {
+		List<String> orderedKeys = null;
+		
+		Map<String, Object> tmp = new TreeMap<String, Object>();
+		
+		int order_col_count = orders.size();
+		
+		if (logger.isDebugEnabled())
+			logger.debug("order_col_count: " + order_col_count);
+		
+		for (String rowKey : rows.keySet()) {
+			Map<String, String> cols = rows.get(rowKey);
+			
+			if (logger.isDebugEnabled())
+				logger.debug("cols: " + cols);
+			
+			Map<String, Object> tmp2 = tmp;
+			
+			int ordersc = 0;
+			
+			for (Order order : orders) {
+				String value = cols.get(order.getColumn());
+				
+				Object object = tmp2.get(value);
+				
+				if (object == null) {
+					if (ordersc < order_col_count - 1) {
+						TreeMap<String, Object> treeMap = new TreeMap<String, Object>();
+						
+						tmp2.put(value, treeMap);
+						
+						tmp2 = treeMap;
+						
+						if (logger.isDebugEnabled())
+							logger.debug("Created a new instance of Map for value (or rather key) '" + value + "' map: " + tmp2.hashCode());
+					}
+					else {
+						tmp2.put(value, rowKey);
+						
+						if (logger.isDebugEnabled())
+							logger.debug("adding key: '" + value + "' value: '" + rowKey + "' map: " + tmp2.hashCode());
+					}
+				}
+				else {
+					if (ordersc < order_col_count - 1) {
+						tmp2 = (Map<String, Object>) object;
+					}
+					else {
+						tmp2.put(value, rowKey);
+						
+						if (logger.isDebugEnabled())
+							logger.debug("adding key: '" + value + "' value: '" + rowKey + "' map: " + tmp2.hashCode());
+					}
+				}
+				
+				ordersc++;
+			}
+		}
+		
+		int ordersc = 0;
+		Stack<Iterator<String>> keyStack = new Stack<Iterator<String>>();
+		Stack<Map<String, Object>> mapStack = new Stack<Map<String,Object>>();
+		
+		keyStack.push(tmp.keySet().iterator());
+		mapStack.push(tmp);
+		
+		Iterator<String> it = null;
+		Map<String, Object> map = null;
+		
+		do {
+			it = keyStack.peek();
+			map = mapStack.peek();
+			
+			String key = it.next();
+			
+			if (logger.isDebugEnabled())
+				logger.debug("inspecting key: '" + key + "' map: " + map.hashCode());
+			
+			Object o = map.get(key);
+			
+			if (o instanceof Map) {
+				keyStack.push(((Map) o).keySet().iterator());
+				mapStack.push((Map<String, Object>) o);
+				continue;
+			}
+			else {
+				if (orderedKeys == null)
+					orderedKeys = new ArrayList<String>();
+				
+				if (!orderedKeys.contains(o))
+					orderedKeys.add((String) o);
+			}
+			
+			if (!it.hasNext()) {
+				keyStack.pop();
+				mapStack.pop();
+			}
+		} while (it.hasNext());
+		
+		return orderedKeys;
+	}
+
+	synchronized public Criteria<T> add(Expression expr) {
 		if (criterias == null)
 			criterias = new ArrayList<Expression>();
 		

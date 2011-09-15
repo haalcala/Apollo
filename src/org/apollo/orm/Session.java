@@ -31,4 +31,6 @@ public interface Session {
 	void flush();
 	
 	<T> List<Serializable> getKeyList(Class<T> clazz, String startKey) throws Exception;
+	
+	void close();
 }

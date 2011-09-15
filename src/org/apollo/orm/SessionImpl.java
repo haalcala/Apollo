@@ -628,23 +628,35 @@ public class SessionImpl implements Session {
 				if (rowsToSave == null) 
 					rowsToSave = new LinkedHashMap<String, Map<String, String>>();
 				
-				Map<String, String> cols = rowsToSave.get(prop);
+				Map<String, String> cols = rowsToSave.get(idValue);
 				
 				if (cols == null) {
 					cols = new LinkedHashMap<String, String>();
-					rowsToSave.put(prop, cols);
+					rowsToSave.put(idValue, cols);
 				}
 				
 				if (value != null)
 					cols.put(column, value.toString());
 			}
 			
-			if (rowsToSave != null) {
+			if (rowsToSave != null) {	
 				for (String rowKey : rowsToSave.keySet()) {
 					Map<String, String> cols = rowsToSave.get(rowKey);
+					
 					for (String col : cols.keySet()) {
 						cf.insertColumn(idValue, col, cols.get(col));
 					}
+
+					String _rstat = cf.getColumnValue(idValue, "__rstat__");
+					
+					int rstat = 0;
+					
+					try {
+						rstat = Integer.parseInt(_rstat);
+					} catch (Exception e) {
+					}
+					
+					cf.insertColumn(idValue, "__rstat__", "" + rstat);
 				}
 			}
 			
@@ -822,12 +834,15 @@ public class SessionImpl implements Session {
     }
 
 	public void refresh(Object object) throws ApolloException {
+		if (object == null)
+			throw new NullPointerException();
+		
 		try {
 			ClassConfig cc = cc = getClassConfig(object);
 			
 			String idValue = (String) cc.getIdValue(object);
 			
-			// TODO
+			if (true) throw new IllegalAccessError("Method not implemented yet");
 		} catch (Exception e) {
 			throw new ApolloException(e);
 		} 
@@ -837,9 +852,7 @@ public class SessionImpl implements Session {
 		try {
 			ClassConfig cc = getClassConfig(object);
 			
-			String idValue = (String) cc.getIdValue(object);
-			
-			// TODO
+			refresh(object);
 		} catch (Exception e) {
 			throw new ApolloException(e);
 		} 
@@ -850,8 +863,6 @@ public class SessionImpl implements Session {
 			ClassConfig cc = getClassConfig(object);
 			
 			String idValue = (String) cc.getIdValue(object);
-			
-			// TODO
 		} catch (Exception e) {
 			throw new ApolloException(e);
 		} 
@@ -917,24 +928,27 @@ public class SessionImpl implements Session {
 		return new CriteriaImpl<T>(this, clazz);
 	}
 	
-	ClassConfig getClassConfig(Class<?> clazz) {
+	ClassConfig getClassConfig(Class<?> clazz, boolean throwOnNotFound) {
 		ClassConfig cc = classToClassConfig.get(clazz);
 		
 		if (cc == null && Enhancer.isEnhanced(clazz))
 			cc = classToClassConfig.get(clazz.getSuperclass());
 		
-		if (cc == null)
+		if (cc == null && throwOnNotFound)
 			throw new IllegalArgumentException("No mapping defined for class '" + clazz + "'");
 		
 		return cc;
 	}
 
 	ClassConfig getClassConfig(Object object) {
-		return getClassConfig(object.getClass());
+		if (object == null)
+			throw new NullPointerException();
+		
+		return getClassConfig(object.getClass(), true);
 	}
 	
 	public void truncate(Class<?> clazz) throws ApolloException {
-		ClassConfig cc = getClassConfig(clazz);
+		ClassConfig cc = getClassConfig(clazz, true);
 		
 		CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(cc.cfName);
 		
@@ -942,11 +956,11 @@ public class SessionImpl implements Session {
 	}
 	
 	public <T> List<Serializable> getKeyList(Class<T> clazz, String startKey) throws Exception {
-		ClassConfig cc = getClassConfig(clazz);
+		ClassConfig cc = getClassConfig(clazz, true);
 		
 		List<Serializable> ret = null;
 		
-		List<T> list = factory.getSession().createCriteria(clazz).list();
+		List<T> list = createCriteria(clazz).list();
 		
 		if (list != null && list.size() > 0) {
 			if (ret == null)
@@ -961,5 +975,8 @@ public class SessionImpl implements Session {
 	}
 
 	public void flush() {
+	}
+
+	public void close() {
 	}
 }

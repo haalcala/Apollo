@@ -3,6 +3,7 @@ package org.apollo.orm;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,8 @@ class ClassConfig {
 	Map<String, String> methodToProp;
 	
 	List<String> mapOfMaps;
+
+	private ArrayList<String> colsAsArray;
 	
 	Serializable getIdValue(Object instance) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		Serializable ret = null;
@@ -186,6 +189,25 @@ class ClassConfig {
 	
 	public Class getPropertyType(String propertyName) {
 		return propertyType.get(propertyName);
+	}
+	
+	public ArrayList<String> getColumnsAsList() {
+		if (colsAsArray == null) {
+			colsAsArray = new ArrayList<String>();
+			
+			int colsi = 0;
+			
+			for (String prop : methodConfig.keySet()) {
+				Map<String, String> method_config = methodConfig.get(prop);
+				
+				String column = method_config.get("column");
+				
+				if (column != null)
+					colsAsArray.add(column);
+			}
+		}
+		
+		return colsAsArray;
 	}
 	
 	public boolean isMapOfMaps(String prop) {
