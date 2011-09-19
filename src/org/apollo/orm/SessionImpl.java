@@ -72,8 +72,12 @@ public class SessionImpl implements Session {
 		if (rows != null && rows.size() > 0) {
 			Map<String, String> cols = rows.get(id);
 			
-			if (cols == null || (cols != null && cols.size() == 0))
+			if (cols == null || (cols != null && cols.size() == 0)) {
+				if (logger.isDebugEnabled())
+					logger.debug("Returning null coz there's no column found");
+				
 				return null;
+			}
 			
 			return colsToObject(id.toString(), cols, classConfig, inverse);
 		}
@@ -87,6 +91,10 @@ public class SessionImpl implements Session {
 
 	static String getGetMethodFromProperty(String propertyName) {
 		return "get" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
+	}
+	
+	static String getIsMethodFromProperty(String propertyName) {
+		return "is" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
 	}
 	
 	<T> T colsToObject(String idValue, Map<String, String> cols, ClassConfig classConfig, Object inverse) throws Exception {
@@ -160,9 +168,12 @@ public class SessionImpl implements Session {
 			
 			String not_null = method_config.get("not-null");
 			
-			if (val == null && not_null != null && not_null.equals("true"))
+			if (val == null && not_null != null && not_null.equals("true")) {
+				logger.warn("Null value detected for not-null property '" + prop + "' col: " + method_config.get(ATTR_COLUMN));
+				
 				// throw new IllegalAccessException("Null cannot be assigned to property '" + prop + "' with 'not-null' attribute");
 				return null;
+			}
 
 			if (val != null)
 				setPropertyMethodValue(ret, val, prop, classConfig);
@@ -273,9 +284,14 @@ public class SessionImpl implements Session {
 		
 		String idValue = oidValue == null ? null : oidValue.toString();
 		
-		CassandraColumnFamilyWrapper link_cf = factory.getCassandraColumnFamilyWrapper(table);
+		String child_table_rowKey = "set-key-index [" + idValue + "]";
 		
-		String _lastId = link_cf.getColumnValue(idValue.toString(), "lastId");
+		if (logger.isDebugEnabled())
+			logger.debug("child_table_rowKey: " + child_table_rowKey);
+		
+		CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(table);
+		
+		String _lastId = child_table_cf.getColumnValue(child_table_rowKey, "lastId");
 		
 		int lastId = 0;
 		
@@ -284,25 +300,34 @@ public class SessionImpl implements Session {
 		} catch (Exception e) {
 		}
 		
+		if (logger.isDebugEnabled())
+			logger.debug("lastId: " + lastId);
+		
 		if (lastId > 0) {
-			Map<String, Map<String, String>> rows = link_cf.getColumnsAsMap(idValue, "", "colId_0", "", 100, 1);
+			Map<String, Map<String, String>> rows = child_table_cf.getColumnsAsMap(child_table_rowKey, "", "colId_0", "", 100, 1);
 			
-			Map<String, String> cols = rows.get(idValue);
+			Map<String, String> cols = rows.get(child_table_rowKey);
 			
 			Set set = null;
 			
-			for (int i = 0; i < lastId; i++) {
-				String otherKey = cols.get("colId_" + i);
-				
-				if (logger.isDebugEnabled()) logger.debug("Trying to find class " + clazz + " using key " + otherKey + " with parent key " + idValue);
-				
-				Object object = find(clazz, otherKey);
-				
-				if (object != null) {
-					if (set == null)
-						set = new HashSet();
+			if (cols != null) {
+				for (int i = 0; i < lastId; i++) {
+					String otherKey = cols.get("colId_" + i);
 
-					set.add(object);
+					if (logger.isDebugEnabled()) 
+						logger.debug("Trying to find class " + clazz + " using key " + otherKey + " with parent key " + idValue);
+
+					Object object = find(clazz, otherKey);
+					
+					if (logger.isDebugEnabled())
+						logger.debug("Class '" + clazz + "' with key '" + otherKey + "' object: " + object);
+
+					if (object != null) {
+						if (set == null)
+							set = new HashSet();
+
+						set.add(object);
+					}
 				}
 			}
 			
@@ -571,7 +596,8 @@ public class SessionImpl implements Session {
 				else if (returnType == List.class) {
 					List<?> list = (List<?>) cc.getPropertyMethodValue(object, prop);
 					
-					value = listToCSV(list);
+					if (list != null)
+						value = listToCSV(list);
 				}
 				else if (returnType == Set.class) {
 					Set<?> set = (Set<?>) cc.getPropertyMethodValue(object, prop);
@@ -586,21 +612,29 @@ public class SessionImpl implements Session {
 					
 					CassandraColumnFamilyWrapper setClass_cf = factory.getCassandraColumnFamilyWrapper(cc2.cfName);
 					
+					String child_cf_rowKey = "set-key-index [" + idValue + "]";
+					
+					setClass_cf.deleteRow(child_cf_rowKey);
+					
+					cf.insertColumn(idValue, prop, child_cf_rowKey);
+					
 					int colId = 0;
 					
 					if (set != null) {
+						
+						
 						for (Object object2 : set) {
 							Object setClass_idValue = cc2.getIdValue(object2);
 
 							if (setClass_idValue != null) {
-								setClass_cf.insertColumn(idValue, "colId_" + colId, setClass_idValue.toString());
+								setClass_cf.insertColumn(child_cf_rowKey, "colId_" + colId, setClass_idValue.toString());
 								colId++;
 							}
 						}
 					}
 					
 					if (colId > 0) {
-						setClass_cf.insertColumn(idValue, "lastId", "" + colId);
+						setClass_cf.insertColumn(child_cf_rowKey, "lastId", "" + colId);
 					}
 				}
 				else {
@@ -617,9 +651,14 @@ public class SessionImpl implements Session {
 						if (cc2 != null) {
 							Object _prop = cc.getPropertyMethodValue(object, prop);
 							
+							boolean notReallyNull = _prop != null;
+							
 							Object o = _prop == null ? null : cc2.getIdValue(_prop);
 							
 							value = o == null ? null : o.toString();
+							
+							if (value == null && notReallyNull)
+								checkForNull = false;
 						}
 					}
 				}
