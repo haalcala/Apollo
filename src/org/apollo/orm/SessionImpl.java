@@ -606,6 +606,9 @@ public class SessionImpl implements Session {
 				else {
 					String _class = propConfig.get(ATTR_CLASS);
 					
+					if (logger.isDebugEnabled())
+						logger.debug("Checking if class belongs to any of the mapped classes: " + _class);
+					
 					if (_class != null) {
 						Class clazz = Class.forName(_class);
 
