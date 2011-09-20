@@ -74,7 +74,12 @@ class ClassConfig {
 		Method method = propGetMethods == null ? null : propGetMethods.get(prop);
 		
 		if (method == null) {
-			method = clazz.getMethod(SessionImpl.getGetMethodFromProperty(prop), null);
+			Class<?> type = propertyType.get(prop);
+
+			if (type == Boolean.TYPE)
+				method = clazz.getMethod(SessionImpl.getIsMethodFromProperty(prop), null);
+			else
+				method = clazz.getMethod(SessionImpl.getGetMethodFromProperty(prop), null);
 			
 			if (propGetMethods == null)
 				propGetMethods = new HashMap<String, Method>();

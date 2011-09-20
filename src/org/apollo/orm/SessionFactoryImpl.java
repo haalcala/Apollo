@@ -139,6 +139,7 @@ public class SessionFactoryImpl implements SessionFactory {
 											}
 											else if (property.getName().equals("property") 
 													|| property.getName().equals("many-to-one")
+													|| property.getName().equals("one-to-one")
 													|| property.getName().equals("set")) {
 												List attributes3 = property.getAttributes();
 												
@@ -148,6 +149,8 @@ public class SessionFactoryImpl implements SessionFactory {
 												
 												boolean hasColumn = false;
 												boolean needsColumn = true;
+												
+												classConfig.setMethodConfig(method_name, "association", property.getName());
 												
 												for (Object object4 : attributes3) {
 													if (object4 instanceof Attribute) {
@@ -185,7 +188,7 @@ public class SessionFactoryImpl implements SessionFactory {
 													classConfig.setMethodConfig(method_name, "column", method_name);
 											}
 											else {
-												
+												logger.warn("Ignoring unrecognised tag '" + property.getName() + "'");
 											}
 										}
 									}

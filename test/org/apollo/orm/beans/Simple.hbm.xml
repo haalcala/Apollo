@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <hibernate-mapping>
-    <class name="net.ipop.analytics.client.beans.Simple" table="Parent">
+    <class name="org.apollo.orm.beans.Simple" table="Parent">
         <id name="id" unsaved-value="null" >
             <column name="id" not-null="true"/>
 
