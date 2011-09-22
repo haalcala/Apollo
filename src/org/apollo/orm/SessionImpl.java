@@ -883,11 +883,19 @@ public class SessionImpl implements Session {
 			throw new NullPointerException();
 		
 		try {
-			ClassConfig cc = cc = getClassConfig(object);
+			ClassConfig cc = getClassConfig(object);
 			
 			String idValue = (String) cc.getIdValue(object);
 			
-			if (true) throw new IllegalAccessError("Method not implemented yet");
+			Object objTmp = find(cc.clazz, idValue);
+			
+			if (objTmp != null) {
+				for (String prop : cc.getMethods()) {
+					Object val = cc.getPropertyMethodValue(objTmp, prop);
+					
+					cc.setPropertyMethodValue(object, prop, val);
+				}
+			}
 		} catch (Exception e) {
 			throw new ApolloException(e);
 		} 
