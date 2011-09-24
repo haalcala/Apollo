@@ -72,6 +72,9 @@ public class CriteriaImpl<T> implements Criteria<T> {
 						orderedKeys = new ArrayList<String>(rows.keySet());
 					}
 					
+					if (logger.isDebugEnabled())
+						logger.debug("Ordered Keys : " + orderedKeys);
+					
 					for (String rowKey : orderedKeys) {
 						Map<String, String> cols = rows.get(rowKey);
 						
@@ -159,6 +162,10 @@ public class CriteriaImpl<T> implements Criteria<T> {
 		Iterator<String> it = null;
 		Map<String, Object> map = null;
 		
+		int order_depth = 0;
+		
+		Order order = orders.get(order_depth);
+		
 		do {
 			it = keyStack.peek();
 			map = mapStack.peek();
@@ -180,7 +187,10 @@ public class CriteriaImpl<T> implements Criteria<T> {
 					orderedKeys = new ArrayList<String>();
 				
 				if (!orderedKeys.contains(o))
-					orderedKeys.add((String) o);
+					if (order.getOrder().equals(Order.ASC))
+						orderedKeys.add((String) o);
+					else
+						orderedKeys.add(0, (String) o);
 			}
 			
 			if (!it.hasNext()) {
