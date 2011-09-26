@@ -621,8 +621,6 @@ public class SessionImpl implements Session {
 					int colId = 0;
 					
 					if (set != null) {
-						
-						
 						for (Object object2 : set) {
 							Object setClass_idValue = cc2.getIdValue(object2);
 
