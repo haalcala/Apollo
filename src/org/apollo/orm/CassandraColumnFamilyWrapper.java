@@ -605,8 +605,15 @@ public class CassandraColumnFamilyWrapper {
 		
 		q.setColumnFamily(columnFamily);
 		
+		String startKey = null;
+		
 		for (Expression exp : criterias) {
 			String prop = exp.getProperty();
+			
+			if (prop.equalsIgnoreCase(classConfig.idMethod)) {
+				startKey = exp.getExpected().toString();
+				continue;
+			}
 			
 			boolean special = prop.startsWith("__") && prop.endsWith("__");
 			
@@ -694,6 +701,9 @@ public class CassandraColumnFamilyWrapper {
 				}
 			}
 		}
+		
+		if (startKey != null)
+			q.setStartKey(startKey);
 		
 		q.setColumnNames(arrayList);
 		
