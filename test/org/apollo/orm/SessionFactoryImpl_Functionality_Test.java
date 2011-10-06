@@ -105,6 +105,42 @@ public class SessionFactoryImpl_Functionality_Test {
 			testProp("intProp", Integer.TYPE, values);
 		}
 		
+		{
+			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_long_prop.hbm.xml";
+			
+			List<Long> values = new ArrayList<Long>();
+			
+			values.add(0L);
+			values.add(Long.MIN_VALUE);
+			values.add(Long.MAX_VALUE);
+			
+			testProp("longProp", Long.TYPE, values);
+		}
+		
+		{
+			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_double_prop.hbm.xml";
+			
+			List<Double> values = new ArrayList<Double>();
+			
+			values.add(0D);
+			values.add(Double.MIN_VALUE);
+			values.add(Double.MAX_VALUE);
+			
+			testProp("doubleProp", Double.TYPE, values);
+		}
+		
+		{
+			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_float_prop.hbm.xml";
+			
+			List<Float> values = new ArrayList<Float>();
+			
+			values.add(0F);
+			values.add(Float.MIN_VALUE);
+			values.add(Float.MAX_VALUE);
+			
+			testProp("floatProp", Float.TYPE, values);
+		}
+		
 	}
 	
 	@Test

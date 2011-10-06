@@ -25,6 +25,8 @@ public class MyBean {
 	
 	public boolean booleanProp;
 	
+	public float floatProp;
+	
 	public List<String> listProp;
 	
 	public Map<String, String> mapProp;
@@ -124,6 +126,14 @@ public class MyBean {
 
 	public void setDoubleProp(double doubleProp) {
 		this.doubleProp = doubleProp;
+	}
+
+	public float getFloatProp() {
+		return floatProp;
+	}
+
+	public void setFloatProp(float floatProp) {
+		this.floatProp = floatProp;
 	}
 
 	public byte getByteProp() {
