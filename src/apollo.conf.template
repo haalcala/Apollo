@@ -40,8 +40,3 @@
 # default: 4000
 #
 # ex: cluster.maxWaitTimeWhenExhausted = 4000
-
-# cassandra.cluster.keyspace.build_columnfamily_structures = true
-
-# analytics.engine.startPollingThread = true
-

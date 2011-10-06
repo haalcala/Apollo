@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<hibernate-mapping>
+    <class name="org.apollo.orm.beans.MyBean" table="MyBeans">
+        <id name="id" unsaved-value="null" >
+            <column name="id" not-null="true"/>
+
+            <generator class="native"/>
+        </id>
+
+		<property name="doublePropWithColumn" column="justAnotherCustomColumn" />
+
+    </class>
+</hibernate-mapping>

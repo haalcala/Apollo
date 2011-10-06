@@ -45,6 +45,8 @@ public class MyBean {
 	
 	public boolean booleanPropWithColumn;
 	
+	public float floatPropWithColumn;
+	
 	public List<String> listPropWithColumn;
 	
 	public Map<String, String> mapPropWithColumn;
@@ -318,6 +320,14 @@ public class MyBean {
 
 	public void setBooleanPropWithColumn(boolean booleanPropWithColumn) {
 		this.booleanPropWithColumn = booleanPropWithColumn;
+	}
+
+	public float getFloatPropWithColumn() {
+		return floatPropWithColumn;
+	}
+
+	public void setFloatPropWithColumn(float floatPropWithColumn) {
+		this.floatPropWithColumn = floatPropWithColumn;
 	}
 
 	public List<String> getListPropWithColumn() {

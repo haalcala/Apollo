@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -92,59 +93,308 @@ public class SessionFactoryImpl_Functionality_Test {
 	}
 
 	@Test
-	public void testProperties() throws Exception {
-		{
-			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_int_prop.hbm.xml";
-			
-			List<Integer> values = new ArrayList<Integer>();
+	public void testIntProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_int_prop.hbm.xml";
 
-			values.add(0);
-			values.add(Integer.MIN_VALUE);
-			values.add(Integer.MAX_VALUE);
+		List<Integer> values = new ArrayList<Integer>();
 
-			testProp("intProp", Integer.TYPE, values);
-		}
-		
-		{
-			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_long_prop.hbm.xml";
-			
-			List<Long> values = new ArrayList<Long>();
-			
-			values.add(0L);
-			values.add(Long.MIN_VALUE);
-			values.add(Long.MAX_VALUE);
-			
-			testProp("longProp", Long.TYPE, values);
-		}
-		
-		{
-			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_double_prop.hbm.xml";
-			
-			List<Double> values = new ArrayList<Double>();
-			
-			values.add(0D);
-			values.add(Double.MIN_VALUE);
-			values.add(Double.MAX_VALUE);
-			
-			testProp("doubleProp", Double.TYPE, values);
-		}
-		
-		{
-			path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_float_prop.hbm.xml";
-			
-			List<Float> values = new ArrayList<Float>();
-			
-			values.add(0F);
-			values.add(Float.MIN_VALUE);
-			values.add(Float.MAX_VALUE);
-			
-			testProp("floatProp", Float.TYPE, values);
-		}
-		
+		values.add(0);
+		values.add(Integer.MIN_VALUE);
+		values.add(Integer.MAX_VALUE);
+
+		testProp("intProp", Integer.TYPE, values);
+	}
+
+	@Test
+	public void testLongProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_long_prop.hbm.xml";
+
+		List<Long> values = new ArrayList<Long>();
+
+		values.add(0L);
+		values.add(Long.MIN_VALUE);
+		values.add(Long.MAX_VALUE);
+
+		testProp("longProp", Long.TYPE, values);
+	}
+
+	@Test
+	public void testDoubleProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_double_prop.hbm.xml";
+
+		List<Double> values = new ArrayList<Double>();
+
+		values.add(0D);
+		values.add(Double.MIN_VALUE);
+		values.add(Double.MAX_VALUE);
+
+		testProp("doubleProp", Double.TYPE, values);
+	}
+
+	@Test
+	public void testFloatProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_float_prop.hbm.xml";
+
+		List<Float> values = new ArrayList<Float>();
+
+		values.add(0F);
+		values.add(Float.MIN_VALUE);
+		values.add(Float.MAX_VALUE);
+
+		testProp("floatProp", Float.TYPE, values);
+	}
+
+	@Test
+	public void testByteProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_byte_prop.hbm.xml";
+
+		List<Byte> values = new ArrayList<Byte>();
+
+		values.add((byte) 0);
+		values.add(Byte.MIN_VALUE);
+		values.add(Byte.MAX_VALUE);
+
+		testProp("byteProp", Byte.TYPE, values);
+	}
+
+	@Test
+	public void testStringProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_string_prop.hbm.xml";
+
+		List<String> values = new ArrayList<String>();
+
+		values.add(null);
+		values.add("The quick brown fox jumps over the lazy dog.");
+		values.add("Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  ");
+
+		testProp("stringProp", String.class, values);
+	}
+
+	@Test
+	public void testTimestampProperties() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_timestamp_prop.hbm.xml";
+
+		long ctm = System.currentTimeMillis();
+
+		List<Timestamp> values = new ArrayList<Timestamp>();
+
+		values.add(null);
+		values.add(new Timestamp(0));
+		values.add(new Timestamp((ctm % 1000) * 1000));
+
+		testProp("timestampProp", Timestamp.class, values);
 	}
 	
 	@Test
+	public void testListProp() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_list_prop.hbm.xml";
+		
+		List<String> values = new ArrayList<String>();
+
+		values.add("a");
+		values.add("The quick brown fox jumps over the lazy dog.");
+		values.add("Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  ");
+
+		configure(true);
+		
+		MyBean bean = new MyBean();
+		
+		bean.listProp = new ArrayList<String>(values);
+		
+		session.save(bean);
+		
+		assertNotNull(bean.getId());
+		assertNotNull(bean.id);
+		
+		configure();
+		
+		String idValue = bean.id;
+		
+		MyBean bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		assertNotNull(bean2.listProp);
+		
+		for (String str : values) {
+			assertTrue(bean2.listProp.contains(str));
+		}
+	}
+
+	@Test
 	public void testMapProp() throws Exception {
+		path_bean_xml = "MyBean_with_native_map_prop.hbm.xml";
+		
+		configure(true);
+		
+		MyBean bean = new MyBean();
+		
+		bean.mapProp = new HashMap<String, String>();
+		
+		String[] keys = {"a", "b", "c", "1", "2", "3"};
+		String[] vals = {"1", "2", "3", "a", "b", "c"};
+		
+		for (int i = 0; i < vals.length; i++) {
+			bean.mapProp.put(keys[i], vals[i]);
+		}
+		
+		session.save(bean);
+		
+		assertNotNull(bean.getId());
+		assertNotNull(bean.id);
+		
+		for (int i = 0; i < vals.length; i++) {
+			assertEquals(vals[i], bean.mapProp.get(keys[i]));
+		}
+		
+		configure();
+		
+		String idValue = bean.id;
+		
+		MyBean bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		assertNotNull(bean2.mapProp);
+		
+		assertEquals(idValue, bean2.id);
+		assertEquals(idValue, bean2.getId());
+		
+		for (int i = 0; i < vals.length; i++) {
+			assertEquals(vals[i], bean2.mapProp.get(keys[i]));
+		}
+	}
+	
+	@Test
+	public void testIntPropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_int_prop_with_column.hbm.xml";
+		
+		List<Integer> values = new ArrayList<Integer>();
+		
+		values.add(0);
+		values.add(Integer.MIN_VALUE);
+		values.add(Integer.MAX_VALUE);
+		
+		testProp("intPropWithColumn", Integer.TYPE, values);
+	}
+	
+	@Test
+	public void testLongPropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_long_prop_with_column.hbm.xml";
+		
+		List<Long> values = new ArrayList<Long>();
+		
+		values.add(0L);
+		values.add(Long.MIN_VALUE);
+		values.add(Long.MAX_VALUE);
+		
+		testProp("longPropWithColumn", Long.TYPE, values);
+	}
+	
+	@Test
+	public void testDoublePropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_double_prop_with_column.hbm.xml";
+		
+		List<Double> values = new ArrayList<Double>();
+		
+		values.add(0D);
+		values.add(Double.MIN_VALUE);
+		values.add(Double.MAX_VALUE);
+		
+		testProp("doublePropWithColumn", Double.TYPE, values);
+	}
+	
+	@Test
+	public void testFloatPropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_float_prop_with_column.hbm.xml";
+		
+		List<Float> values = new ArrayList<Float>();
+		
+		values.add(0F);
+		values.add(Float.MIN_VALUE);
+		values.add(Float.MAX_VALUE);
+		
+		testProp("floatPropWithColumn", Float.TYPE, values);
+	}
+	
+	@Test
+	public void testBytePropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_byte_prop_with_column.hbm.xml";
+		
+		List<Byte> values = new ArrayList<Byte>();
+		
+		values.add((byte) 0);
+		values.add(Byte.MIN_VALUE);
+		values.add(Byte.MAX_VALUE);
+		
+		testProp("bytePropWithColumn", Byte.TYPE, values);
+	}
+	
+	@Test
+	public void testStringPropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_string_prop_with_column.hbm.xml";
+		
+		List<String> values = new ArrayList<String>();
+		
+		values.add(null);
+		values.add("The quick brown fox jumps over the lazy dog.");
+		values.add("Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  " +
+				"Extremely long string.  Extremely long string.  Extremely long string.  Extremely long string.  ");
+		
+		testProp("stringPropWithColumn", String.class, values);
+	}
+	
+	@Test
+	public void testTimestampPropertiesWithColumn() throws Exception {
+		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_timestamp_prop_with_column.hbm.xml";
+		
+		long ctm = System.currentTimeMillis();
+		
+		List<Timestamp> values = new ArrayList<Timestamp>();
+		
+		values.add(null);
+		values.add(new Timestamp(0));
+		values.add(new Timestamp((ctm % 1000) * 1000));
+		
+		testProp("timestampPropWithColumn", Timestamp.class, values);
+	}
+	
+	@Test
+	public void testMapPropWithColumn() throws Exception {
 		path_bean_xml = "MyBean_with_native_map_prop.hbm.xml";
 		
 		configure(true);
@@ -199,7 +449,7 @@ public class SessionFactoryImpl_Functionality_Test {
 			
 			bean = new MyBean();
 
-			String getMethodName = SessionImpl.getGetMethodFromProperty(prop);
+			String getMethodName = clazz == Boolean.TYPE ?  SessionImpl.getIsMethodFromProperty(prop) : SessionImpl.getGetMethodFromProperty(prop);
 			
 			String setMethodName = SessionImpl.getSetMethodFromProperty(prop);
 			
