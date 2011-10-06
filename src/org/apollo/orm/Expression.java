@@ -1,5 +1,7 @@
 package org.apollo.orm;
 
+import java.util.List;
+
 public class Expression {
 	public static final String OPERATION_EQ = "EQ";
 	public static final String OPERATION_GT = "GT";
@@ -7,6 +9,7 @@ public class Expression {
 	public static final String OPERATION_LT = "LT";
 	public static final String OPERATION_LTE = "LTE";
 	public static final String OPERATION_NOT = "NOT";
+	public static final String OPERATION_IN = "IN";
 	
 	private Object expected;
 	private String operation;
@@ -36,6 +39,10 @@ public class Expression {
 	
 	public static Expression lte(String property, Object expected) {
 		return new Expression(OPERATION_LTE, property, expected);
+	}
+
+	public static Expression in(String property, List<String> keys) {
+		return new Expression(OPERATION_IN, property, keys);
 	}
 	
 	public Object getExpected() {

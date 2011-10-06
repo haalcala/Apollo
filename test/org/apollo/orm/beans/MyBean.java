@@ -8,69 +8,76 @@ import java.util.Map;
  * @author harold
  *
  */
-public class Simple {
-	String id;
+public class MyBean {
+	public String id;
 	
-	String stringProp;
+	public String stringProp;
 	
-	Timestamp timestampProp;
+	public Timestamp timestampProp;
 	
-	int intProp;
+	public int intProp;
 	
-	long longProp;
+	public long longProp;
 	
-	double doubleProp;
+	public double doubleProp;
 	
-	byte byteProp;
+	public byte byteProp;
 	
-	boolean booleanProp;
+	public boolean booleanProp;
 	
-	List<String> listProp;
+	public List<String> listProp;
 	
-	Map<String, String> mapProp;
+	public Map<String, String> mapProp;
 	
-	String stringPropWithColumn;
+	public String stringPropWithColumn;
 	
-	Timestamp timestampPropWithColumn;
+	public 	Timestamp timestampPropWithColumn;
 	
-	int intPropWithColumn;
+	public 	int intPropWithColumn;
 	
-	long longPropWithColumn;
+	public long longPropWithColumn;
 	
-	double doublePropWithColumn;
+	public double doublePropWithColumn;
 	
-	byte bytePropWithColumn;
+	public byte bytePropWithColumn;
 	
-	boolean booleanPropWithColumn;
+	public boolean booleanPropWithColumn;
 	
-	List<String> listPropWithColumn;
+	public List<String> listPropWithColumn;
 	
-	Map<String, String> mapPropWithColumn;
+	public Map<String, String> mapPropWithColumn;
 	
-	Map<String, String> mapWithTablename;
+	public Map<String, String> mapWithTablename;
 	
-	Map<String, String> mapWithTablenameAndLazyLoaded;
+	public Map<String, String> mapWithTablenameAndLazyLoaded;
 
-	Map<String, Map<String, String>> mapOfMaps;
+	public Map<String, Map<String, String>> mapOfMaps;
 	
-	String stringPropUmapped;
+	public String stringPropUmapped;
 	
-	Timestamp timestampPropUmapped;
+	public Timestamp timestampPropUmapped;
 	
-	int intPropUmapped;
+	public int intPropUmapped;
 	
-	long longPropUmapped;
+	public long longPropUmapped;
 	
-	double doublePropUmapped;
+	public double doublePropUmapped;
 	
-	byte bytePropUmapped;
+	public 	byte bytePropUmapped;
 	
-	boolean booleanPropUmapped;
+	public boolean booleanPropUmapped;
 	
-	List<String> listPropUmapped;
+	public List<String> listPropUmapped;
 	
-	Map<String, String> mapPropUmapped;
+	public Map<String, String> mapPropUmapped;
 	
+	public MyBean() {
+	}
+	
+	public MyBean(String id) {
+		this.id = id;
+	}
+
 	public String getId() {
 		return id;
 	}

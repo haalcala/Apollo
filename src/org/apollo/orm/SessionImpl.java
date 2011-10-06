@@ -113,8 +113,10 @@ public class SessionImpl implements Session {
 			}
 		}
 		
+		/*
 		if (classConfig.proxyMethods != null && classConfig.proxyMethods.size() > 0)
 			ret = createProxy(idValue, ret, classConfig);
+		*/
 		
 		return ret;
 	}
@@ -133,7 +135,38 @@ public class SessionImpl implements Session {
 			//String _lazy_loaded = method_config.get(ATTR_LAZY_LOADED);
 			
 			if (table == null) {
-				commenceNativeMapPropertyInjection(ret, cols, prop, classConfig);
+				// commenceNativeMapPropertyInjection(ret, cols, prop, classConfig);
+				CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(classConfig.cfName);
+				
+				String mapKey = cols.get(method_config.get("column"));
+				
+				if (logger.isDebugEnabled())
+					logger.debug("mapKey: " + mapKey);
+				
+				Map<String, Map<String, String>> rows = cf.getColumnsAsMap(mapKey, "", "", "", 100, 1);
+				
+				if (rows != null)
+					classConfig.setPropertyMethodValue(ret, prop, rows.get(mapKey));
+			}
+			else {
+				boolean mapOfMaps = classConfig.isMapOfMaps(prop);
+				
+				String child_table_key_suffix = method_config.get(SessionImpl.ATTR_CHILD_TABLE_KEY_SUFFIX);
+
+				String columnIdValue = idValue + (child_table_key_suffix != null ? child_table_key_suffix : "");
+
+				CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(table);
+
+				ApolloMapImpl<?> map;
+				
+				if (mapOfMaps) {
+					map = new ApolloMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
+				}
+				else {
+					map = new ApolloMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
+				}
+				
+				classConfig.setPropertyMethodValue(ret, prop, map);
 			}
 			/*
 			else {
@@ -549,15 +582,27 @@ public class SessionImpl implements Session {
 								if (child_table == null) {
 									if (rowsToSave == null) 
 										rowsToSave = new LinkedHashMap<String, Map<String, String>>();
-
-									Map<String, String> cols = rowsToSave.get(prop);
+									
+									String mapKey = "map-key-value-pairs [" + idValue + "|" + prop + "]";
+									
+									Map<String, String> cols = rowsToSave.get(mapKey);
 
 									if (cols == null) {
 										cols = new LinkedHashMap<String, String>();
-										rowsToSave.put(prop, cols);
+										rowsToSave.put(mapKey, cols);
 									}
 
-									cols.put(prop + "-" + key, (String) map.get(key));
+									cols.put(key, (String) map.get(key));
+									
+									cols = rowsToSave.get(idValue);
+									
+									if (cols == null) {
+										cols = new LinkedHashMap<String, String>();
+										
+										rowsToSave.put(idValue, cols);
+									}
+									
+									cols.put(column, mapKey);
 								}
 								else {
 									if (logger.isDebugEnabled()) 
@@ -682,12 +727,15 @@ public class SessionImpl implements Session {
 					cols.put(column, value.toString());
 			}
 			
-			if (rowsToSave != null) {	
+			if (rowsToSave != null) {
 				for (String rowKey : rowsToSave.keySet()) {
 					Map<String, String> cols = rowsToSave.get(rowKey);
 					
+					if (rowKey.startsWith("map-key-value-pairs"))
+						cf.deleteRow(rowKey);
+					
 					for (String col : cols.keySet()) {
-						cf.insertColumn(idValue, col, cols.get(col));
+						cf.insertColumn(rowKey, col, cols.get(col));
 					}
 
 					String _rstat = cf.getColumnValue(idValue, "__rstat__");

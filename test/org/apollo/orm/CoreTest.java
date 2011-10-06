@@ -5,7 +5,7 @@ import static org.junit.Assert.*;
 import java.util.List;
 import java.util.Properties;
 
-import org.apollo.orm.beans.Simple;
+import org.apollo.orm.beans.MyBean;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -46,11 +46,11 @@ public class CoreTest {
 	public void testSimple() throws Exception {
 		Session ss = factory.getSession();
 		
-		ss.truncate(Simple.class);
+		ss.truncate(MyBean.class);
 		
 		String myId = "My Id";
 		
-		Simple simple = new Simple();
+		MyBean simple = new MyBean();
 		simple.setId(myId);
 		
 		ss.save(simple);

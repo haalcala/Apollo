@@ -8,6 +8,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -598,20 +599,31 @@ public class CassandraColumnFamilyWrapper {
 		return ret;
 	}
 	
-	public Map<String, Map<String, String>> findColumnWithValue(List<Expression> criterias, Session session, ClassConfig classConfig, ArrayList<String> arrayList) throws SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+	public Map<String, Map<String, String>> findColumnWithValue(List<Expression> criterias, Session session, 
+			ClassConfig classConfig, ArrayList<String> column_list) 
+					throws SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, 
+							InvocationTargetException {
+		
 		Map<String, Map<String, String>> ret = null;
 
 		IndexedSlicesQuery<String, String, String> q = HFactory.createIndexedSlicesQuery(keyspace, stringSerializer, stringSerializer, stringSerializer);
 		
 		q.setColumnFamily(columnFamily);
 		
-		String startKey = null;
+		List<Serializable> startKey = null;
 		
 		for (Expression exp : criterias) {
 			String prop = exp.getProperty();
 			
 			if (prop.equalsIgnoreCase(classConfig.idMethod)) {
-				startKey = exp.getExpected().toString();
+				if (startKey == null)
+					startKey = new ArrayList<Serializable>();
+				
+				if (exp.getOperation().equals(Expression.OPERATION_IN))
+					startKey.addAll((Collection<? extends Serializable>) exp.getExpected());
+				else
+					startKey.add(exp.getExpected().toString());
+				
 				continue;
 			}
 			
@@ -693,19 +705,24 @@ public class CassandraColumnFamilyWrapper {
 		}
 		
 		if (logger.isDebugEnabled()) {
-			logger.debug("column_names: " + arrayList);
+			logDebug("column_names: " + column_list);
 			
-			if (arrayList != null) {
-				for (String string : arrayList) {
-					logger.debug("string: " + string);
+			if (column_list != null) {
+				for (String column : column_list) {
+					logDebug("column: " + column);
 				}
 			}
 		}
 		
-		if (startKey != null)
-			q.setStartKey(startKey);
+		if (startKey != null && startKey.size() == 1)
+			q.setStartKey(startKey.get(0).toString());
 		
-		q.setColumnNames(arrayList);
+		if (logger.isDebugEnabled()) {
+			if (startKey != null && startKey.size() > 1)
+				logDebug("Will be performing selected keys only");
+		}
+		
+		q.setColumnNames(column_list);
 		
 		QueryResult<OrderedRows<String, String, String>> r = q.execute();
 		
@@ -714,6 +731,16 @@ public class CassandraColumnFamilyWrapper {
 		List<Row<String, String, String>> rows = _rows.getList();
 		
 		for (Row<String, String, String> row : rows) {
+			if (logger.isDebugEnabled())
+				logDebug("Found a Row: " + row.getKey());
+			
+			if (startKey != null && startKey.size() > 1 && !startKey.contains(row.getKey())) {
+				if (logger.isDebugEnabled())
+					logDebug("Skipping key: " + row.getKey());
+				
+				continue;
+			}
+			
 			if (ret == null)
 				ret = new LinkedHashMap<String, Map<String,String>>();
 			
@@ -822,7 +849,7 @@ public class CassandraColumnFamilyWrapper {
 		final Map<String, Map<String, String>> ret = new LinkedHashMap<String, Map<String,String>>();
 		
 		if (logger.isDebugEnabled())
-			logDebug("Retrieving colums as map: startKey: '" + startKey + "' startColumn: '" + startColumn + "' maxRows: " + maxRows + " maxCols: " + maxColumns);
+			logDebug("Retrieving colums as map: startKey: '" + startKey + "' startColumn: '" + startColumn + "' maxRows: " + maxRows + " rowsPerPage: " + rowsPerPage + " maxCols: " + maxColumns);
 		
 		class Counter {
 			int tmpRowCount;
@@ -966,6 +993,7 @@ public class CassandraColumnFamilyWrapper {
 		rangeSlicesQuery.setColumnFamily(columnFamily); 
 		rangeSlicesQuery.setKeys(startKey, endKey);
 		rangeSlicesQuery.setRange(startColumn, endColumn, false, maxColumns);
+		
 		rangeSlicesQuery.setRowCount(maxRows); 
 		
 		if (keysOnly)
