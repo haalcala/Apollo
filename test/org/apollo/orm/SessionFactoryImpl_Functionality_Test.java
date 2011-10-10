@@ -479,7 +479,7 @@ public class SessionFactoryImpl_Functionality_Test {
 			
 			assertEquals(idValue, bean2.id);
 			assertEquals(idValue, bean2.getId());
-			
+				
 			assertEquals(value, getMethod.invoke(bean2, null));
 		}
 	}
