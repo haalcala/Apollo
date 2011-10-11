@@ -830,7 +830,7 @@ public class CassandraColumnFamilyWrapper {
 	
 	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
 			String endColumn, final int maxColumns, final int maxRows) {
-		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, maxRows > 100 ? 100 : maxRows);
+		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, maxRows > ApolloConstants.MAX_ROWS_PER_PAGE ? ApolloConstants.MAX_ROWS_PER_PAGE : maxRows);
 	}
 	
 	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
@@ -885,7 +885,7 @@ public class CassandraColumnFamilyWrapper {
 			do {
 				c.tmpRowCount = 0;
 
-				getColumns(c._startKey, endKey, c._startCol, endColumn, maxColumns + 1, c._maxRows, keysOnly, new GetColumnsHandlerAdapter() {
+				getColumns(c._startKey, endKey, c._startCol, endColumn, maxColumns, c._maxRows, keysOnly, new GetColumnsHandlerAdapter() {
 					private int skipRows;
 					private int skipCols;
 					private Map<String, String> cols;
@@ -990,7 +990,7 @@ public class CassandraColumnFamilyWrapper {
 		RangeSlicesQuery<String, String, String> rangeSlicesQuery
 				= HFactory.createRangeSlicesQuery(keyspace, stringSerializer, stringSerializer, stringSerializer);
 
-		rangeSlicesQuery.setColumnFamily(columnFamily); 
+		rangeSlicesQuery.setColumnFamily(columnFamily);
 		rangeSlicesQuery.setKeys(startKey, endKey);
 		rangeSlicesQuery.setRange(startColumn, endColumn, false, maxColumns);
 		

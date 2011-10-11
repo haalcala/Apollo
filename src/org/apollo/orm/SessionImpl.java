@@ -160,10 +160,10 @@ public class SessionImpl implements Session {
 				ApolloMapImpl<?> map;
 				
 				if (mapOfMaps) {
-					map = new ApolloMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
+					map = new ApolloMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
 				}
 				else {
-					map = new ApolloMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps);
+					map = new ApolloMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
 				}
 				
 				classConfig.setPropertyMethodValue(ret, prop, map);
@@ -621,15 +621,15 @@ public class SessionImpl implements Session {
 							
 							if (method_value == null) {
 								if (cc.isMapOfMaps(prop))
-									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true);
+									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true, null);
 								else
-									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, null, false);
+									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, null, false, null);
 							}
 							else {
 								if (cc.isMapOfMaps(prop))
-									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true);
+									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true, null);
 								else
-									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false);
+									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false, null);
 							}
 							
 							cc.setPropertyMethodValue(object, prop, map);

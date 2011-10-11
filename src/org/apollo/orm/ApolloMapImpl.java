@@ -1,8 +1,10 @@
 package org.apollo.orm;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
@@ -22,9 +24,11 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 
 	private String prop;
 
+	protected ClassConfig classConfig;
+
 	@Autowired
 	public ApolloMapImpl(SessionFactory factory, String rowKey, CassandraColumnFamilyWrapper cf, 
-			String prop, Map<String, T> initialData, boolean mapOfMaps) throws SecurityException, NoSuchMethodException {
+			String prop, Map<String, T> initialData, boolean mapOfMaps, ClassConfig classConfig) throws SecurityException, NoSuchMethodException {
 		this.factory = factory;
 		this.cf = cf;
 		this.rowKey = rowKey;
@@ -114,7 +118,7 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 						cf.insertColumn(getKeyIndexRowKey(rowKey), key.toString(), mapKey);
 					}
 					
-					ret = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, null, false);
+					ret = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, null, false, null);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -140,7 +144,145 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 	}
 
 	public Set<String> keySet() {
-		return getMap().keySet();
+		return new Set<String>() {
+			
+			Map<String, String> cols;
+			
+			@Override
+			public <T> T[] toArray(T[] a) {
+				
+				
+				
+				return a;
+			}
+			
+			@Override
+			public Object[] toArray() {
+				// TODO Auto-generated method stub
+				return null;
+			}
+			
+			@Override
+			public int size() {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+			
+			@Override
+			public boolean retainAll(Collection<?> c) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public boolean removeAll(Collection<?> c) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public boolean remove(Object o) {
+				if (o != null)
+					cf.deleteColumn(rowKey, o.toString());
+				
+				return o != null;
+			}
+			
+			@Override
+			public Iterator<String> iterator() {
+				return new Iterator<String>() {
+					
+					String curCol;
+					
+					Iterator<String> col_it;
+					
+					int coli;
+					
+					@Override
+					public void remove() {
+						if (curCol == null)
+							throw new NoSuchElementException();
+						
+						cf.deleteColumn(rowKey, curCol);
+					}
+					
+					@Override
+					public String next() {
+						if (col_it != null) { 
+							curCol = col_it.next();
+							coli++;
+							return curCol;
+						}
+						
+						throw new NoSuchElementException();
+					}
+					
+					void loadNewPage() {
+						if (coli == 0 || coli > ApolloConstants.MAX_COLUMN_PER_PAGE) {
+							Map<String, Map<String, String>> rows = cf.getColumnsAsMap(rowKey, "", curCol, "", ApolloConstants.MAX_COLUMN_PER_PAGE + 1, 1);
+							
+							if (rows != null && rows.size() > 0) {
+								cols = rows.get(rowKey);
+								
+								col_it = cols.keySet().iterator();
+								
+								coli = 0;
+							}
+						}
+					}
+					
+					@Override
+					public boolean hasNext() {
+						loadNewPage();
+						
+						if (col_it != null)
+							col_it.hasNext();
+						
+						return false;
+					}
+				};
+			}
+			
+			@Override
+			public boolean isEmpty() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public boolean containsAll(Collection<?> c) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public boolean contains(Object o) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public void clear() {
+				
+			}
+			
+			@Override
+			public boolean addAll(Collection<? extends String> c) {
+				
+				for (String str : c) {
+					cf.insertColumn(rowKey, str, "");
+				}
+				
+				return true;
+			}
+			
+			@Override
+			public boolean add(String str) {
+				cf.insertColumn(rowKey, str, "");
+				
+				return true;
+			}
+		};
 	}
 
 	public T put(String key, T value) {
@@ -156,7 +298,7 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 				String mapKey = getNewSubKey(rowKey, key);
 				
 				try {
-					cols = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, (Map<String, String>) value, false);
+					cols = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, (Map<String, String>) value, false, null);
 
 					value = cols;
 
