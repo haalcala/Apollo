@@ -1,14 +1,20 @@
 package org.apollo.orm;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+
+import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 
 import org.apache.log4j.Logger;
 import org.apollo.orm.beans.MyBean;
@@ -482,5 +488,135 @@ public class SessionFactoryImpl_Functionality_Test {
 				
 			assertEquals(value, getMethod.invoke(bean2, null));
 		}
+	}
+	
+	@Test
+	public void testSetProprety() throws Exception {
+		path_bean_xml = "MyBean_with_native_set_prop.hbm.xml";
+		
+		configure(true);
+		
+		MyBean bean = new MyBean();
+		
+		bean.setSetStringProp = new HashSet<String>();
+		
+		final int record_count = 220;
+		
+		List<String> data = getRandomDataAsList(record_count);
+		
+		for (String dat : data) {
+			bean.setSetStringProp.add(dat);
+		}
+		
+		session.save(bean);
+		
+		assertNotNull(bean.getId());
+		assertNotNull(bean.id);
+		
+		String idValue = bean.id;
+		
+		logger.info("### QUERYING ID: " + idValue + " ... ");
+		
+		MyBean bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		
+		assertEquals(idValue, bean2.id);
+		assertEquals(idValue, bean2.getId());
+		
+		assertNotNull(bean2.setSetStringProp);
+		
+		Iterator<String> it = bean2.setSetStringProp.iterator();
+		
+		assertNotNull(it);
+		
+		List<String> data2 = new ArrayList<String>(data);
+		
+		logger.info("### LISTING ELEMENTS FOR ID: " + idValue + " ... ");
+		
+		int c = 0;
+		
+		for (; it.hasNext(); ) {
+			String dat = it.next();
+			
+			logger.debug("### dat: " + dat + " " + c++);
+			
+			assertNotNull(dat);
+			
+			assertTrue(data2.contains(dat));
+			
+			data2.remove(dat);
+		}
+		
+		assertEquals(0, data2.size());
+		
+		assertEquals(record_count, c);
+		
+		for (String key : data) {
+			bean2.setSetStringProp.remove(key);
+		}
+		
+		bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		
+		assertEquals(idValue, bean2.id);
+		assertEquals(idValue, bean2.getId());
+		
+		assertNotNull(bean2.setSetStringProp);
+		
+		it = bean2.setSetStringProp.iterator();
+		
+		c = 0;
+		
+		for (; it.hasNext(); ) {
+			c++;
+		}
+		
+		assertEquals(0, c);
+		
+		for (String key : data) {
+			bean2.setSetStringProp.add(key);
+		}
+		
+		data2 = new ArrayList<String>(data);
+		
+		logger.info("### LISTING ELEMENTS FOR ID: " + idValue + " ... ");
+		
+		it = bean2.setSetStringProp.iterator();
+		
+		c = 0;
+		
+		for (; it.hasNext(); ) {
+			String dat = it.next();
+			
+			logger.debug("### dat: " + dat + " " + c++);
+			
+			assertNotNull(dat);
+			
+			assertTrue(data2.contains(dat));
+			
+			data2.remove(dat);
+		}
+		
+		assertEquals(0, data2.size());
+		
+		assertEquals(record_count, c);
+	}
+
+	private List<String> getRandomDataAsList(int record_count) {
+		List<String> dat = new ArrayList<String>();
+		
+		for (int i = 0; i < record_count; i++) {
+			String _ = "dat #" + i + " " + TimeUUIDUtils.getUniqueTimeUUIDinMillis();
+			
+			dat.add(_);
+		}
+		
+		return dat;
 	}
 }

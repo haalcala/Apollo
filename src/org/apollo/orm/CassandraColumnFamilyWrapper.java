@@ -366,18 +366,20 @@ public class CassandraColumnFamilyWrapper {
 	 * @return value of a column
 	 */
 	public String getColumnValue(String key, String columnName) {
-		ColumnQuery<String, String, String> columnQuery =
-			HFactory.createStringColumnQuery(keyspace);
+		if (logger.isDebugEnabled())
+			logDebug("Retrieving value for column '" + columnName + "' with key '" + key + "'");
+		
+		ColumnQuery<String, String, String> columnQuery = HFactory.createStringColumnQuery(keyspace);
 
 		columnQuery.setColumnFamily(columnFamily).setKey(key).setName(columnName);
 
 		QueryResult<HColumn<String, String>> result = columnQuery.execute();
 
 		HColumn<String, String> col = result.get();
-
+		
 		if (col != null) {
 			String val = col.getValue();
-
+			
 			return val;
 		}
 
@@ -835,7 +837,7 @@ public class CassandraColumnFamilyWrapper {
 	
 	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
 			String endColumn, final int maxColumns, final int maxRows, boolean keysOnly) {
-		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, maxRows > 100 || maxRows == 0 ? 100 : maxRows, keysOnly);
+		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, maxRows > 1000 || maxRows == 0 ? 1000 : maxRows, keysOnly);
 	}
 	
 	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 

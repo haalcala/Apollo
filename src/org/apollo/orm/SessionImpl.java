@@ -19,16 +19,9 @@ import net.sf.ehcache.Element;
 
 import org.apache.log4j.Logger;
 
-public class SessionImpl implements Session {
+public class SessionImpl implements Session, ApolloConstants {
 	private static Logger logger = Logger.getLogger(SessionImpl.class);
 	
-	static final String ATTR_CASCADE = "cascade";
-	static final String ATTR_TABLE = "table";
-	static final String ATTR_CLASS = "class";
-	static final String ATTR_COLUMN = "column";
-	static final String ATTR_CHILD_TABLE_KEY_SUFFIX = "child-table-key-suffix";
-	static final String ATTR_LAZY_LOADED = "lazy-loaded";
-
 	private static final String CACHE_NAME = "apollo";
 
 	private SessionFactory factory;
@@ -199,7 +192,7 @@ public class SessionImpl implements Session {
 		else {
 			String val = cols.get(method_config.get(ATTR_COLUMN));
 			
-			String not_null = method_config.get("not-null");
+			String not_null = method_config.get(ATTR_NOT_NULL);
 			
 			if (val == null && not_null != null && not_null.equals("true")) {
 				logger.warn("Null value detected for not-null property '" + prop + "' col: " + method_config.get(ATTR_COLUMN));
@@ -306,67 +299,61 @@ public class SessionImpl implements Session {
 	private void commenceSetPropertyInjection(Object o, String prop, ClassConfig classConfig) throws Exception {
 		if (logger.isDebugEnabled()) logger.debug("Processing a property "+prop+" with 'Set' type.");
 		
+		Class<?> generic_type = classConfig.getMethodParameterizedType(prop);
+		
+		boolean isNative = Util.isNativelySupported(generic_type);
+		
 		Map<String, String> methodConfig = classConfig.getMethodConfig(prop);
 		
 		String _class = methodConfig.get(ATTR_CLASS);
 		String table = methodConfig.get(ATTR_TABLE);
 		
-		Class<?> clazz = Class.forName(_class);
+		//Class<?> clazz = Class.forName(_class);
 		
 		Object oidValue = classConfig.getIdValue(o);
 		
 		String idValue = oidValue == null ? null : oidValue.toString();
 		
-		String child_table_rowKey = "set-key-index [" + idValue + "]";
+		CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(classConfig.cfName);
+		
+		String child_table_rowKey = cf.getColumnValue(idValue, classConfig.getMethodColumn(prop, true));
 		
 		if (logger.isDebugEnabled())
 			logger.debug("child_table_rowKey: " + child_table_rowKey);
 		
-		CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(table);
+		CassandraColumnFamilyWrapper child_table_cf = table != null ? factory.getCassandraColumnFamilyWrapper(table) : cf;
 		
-		String _lastId = child_table_cf.getColumnValue(child_table_rowKey, "lastId");
-		
-		int lastId = 0;
-		
-		try {
-			lastId = Integer.parseInt(_lastId);
-		} catch (Exception e) {
-		}
-		
-		if (logger.isDebugEnabled())
-			logger.debug("lastId: " + lastId);
-		
-		if (lastId > 0) {
-			Map<String, Map<String, String>> rows = child_table_cf.getColumnsAsMap(child_table_rowKey, "", "colId_0", "", 100, 1);
-			
-			Map<String, String> cols = rows.get(child_table_rowKey);
-			
-			Set set = null;
-			
-			if (cols != null) {
-				for (int i = 0; i < lastId; i++) {
-					String otherKey = cols.get("colId_" + i);
+		//Map<String, Map<String, String>> rows = child_table_cf.getColumnsAsMap(child_table_rowKey, "", "colId_0", "", 100, 1);
 
-					if (logger.isDebugEnabled()) 
-						logger.debug("Trying to find class " + clazz + " using key " + otherKey + " with parent key " + idValue);
+		//Map<String, String> cols = rows.get(child_table_rowKey);
+		
+		Set set = new ApolloSetImpl(this, prop, child_table_cf, classConfig, child_table_rowKey, "", "", 0);
 
-					Object object = find(clazz, otherKey);
-					
-					if (logger.isDebugEnabled())
-						logger.debug("Class '" + clazz + "' with key '" + otherKey + "' object: " + object);
+		/*
+		if (cols != null) {
+			for (int i = 0; i < lastId; i++) {
+				String otherKey = cols.get("colId_" + i);
 
-					if (object != null) {
-						if (set == null)
-							set = new HashSet();
+				if (logger.isDebugEnabled()) 
+					logger.debug("Trying to find class " + clazz + " using key " + otherKey + " with parent key " + idValue);
 
-						set.add(object);
-					}
+				Object object = find(clazz, otherKey);
+
+				if (logger.isDebugEnabled())
+					logger.debug("Class '" + clazz + "' with key '" + otherKey + "' object: " + object);
+
+				if (object != null) {
+					if (set == null)
+						set = new HashSet();
+
+					set.add(object);
 				}
 			}
-			
-			if (set != null) {
-				classConfig.setPropertyMethodValue(o, prop, set);
-			}
+		}
+		*/
+
+		if (set != null) {
+			classConfig.setPropertyMethodValue(o, prop, set);
 		}
 	}
 	
@@ -647,37 +634,45 @@ public class SessionImpl implements Session {
 				else if (returnType == Set.class) {
 					Set<?> set = (Set<?>) cc.getPropertyMethodValue(object, prop);
 					
+					Class<?> generic_type = cc.getMethodParameterizedType(prop);
+					
+					boolean isNative = Util.isNativelySupported(generic_type);
+					
 					Map<String, String> methodConfig = cc.getMethodConfig(prop);
 					
 					String _class = methodConfig.get(ATTR_CLASS);
 
-					Class<?> clazz = Class.forName(_class);
+					Class<?> clazz = isNative ? generic_type : Class.forName(_class);
 					
-					ClassConfig cc2 = classToClassConfig.get(clazz);
+					ClassConfig cc2 = isNative ? null : classToClassConfig.get(clazz);
 					
-					CassandraColumnFamilyWrapper setClass_cf = factory.getCassandraColumnFamilyWrapper(cc2.cfName);
+					//CassandraColumnFamilyWrapper setClass_cf = cc2 != null ? factory.getCassandraColumnFamilyWrapper(cc2.cfName) : cf;
 					
-					String child_cf_rowKey = "set-key-index [" + idValue + "]";
+					String child_cf_rowKey = "set-key-index [" + idValue + "|"+prop+"]";
 					
-					setClass_cf.deleteRow(child_cf_rowKey);
+					// setClass_cf.deleteRow(child_cf_rowKey);
 					
-					cf.insertColumn(idValue, prop, child_cf_rowKey);
-					
-					int colId = 0;
+					cf.insertColumn(idValue, column, child_cf_rowKey);
 					
 					if (set != null) {
 						for (Object object2 : set) {
-							Object setClass_idValue = cc2.getIdValue(object2);
-
+							Object setClass_idValue = cc2 != null ? cc2.getIdValue(object2) : object2.toString();
+							
 							if (setClass_idValue != null) {
-								setClass_cf.insertColumn(child_cf_rowKey, "colId_" + colId, setClass_idValue.toString());
-								colId++;
+								if (rowsToSave == null) 
+									rowsToSave = new LinkedHashMap<String, Map<String, String>>();
+								
+								Map<String, String> cols = rowsToSave.get(child_cf_rowKey);
+								
+								if (cols == null) {
+									cols = new LinkedHashMap<String, String>();
+									rowsToSave.put(child_cf_rowKey, cols);
+								}
+								
+								if (setClass_idValue != null)
+									cols.put(TimeUUIDUtils.getUniqueTimeUUIDinMillis().toString(), setClass_idValue.toString());
 							}
 						}
-					}
-					
-					if (colId > 0) {
-						setClass_cf.insertColumn(child_cf_rowKey, "lastId", "" + colId);
 					}
 				}
 				else {
@@ -709,8 +704,8 @@ public class SessionImpl implements Session {
 					}
 				}
 				
-				if (checkForNull && value == null && propConfig.get("not-null") != null 
-						&& propConfig.get("not-null").equals("true"))
+				if (checkForNull && value == null && propConfig.get(ATTR_NOT_NULL) != null 
+						&& propConfig.get(ATTR_NOT_NULL).equals("true"))
 					throw new IllegalArgumentException("null parameter detected for property '" + prop + "'");
 				
 				if (rowsToSave == null) 
@@ -729,9 +724,12 @@ public class SessionImpl implements Session {
 			
 			if (rowsToSave != null) {
 				for (String rowKey : rowsToSave.keySet()) {
+					if (logger.isDebugEnabled())
+						logger.debug("Saving rowKey: " + rowKey);
+					
 					Map<String, String> cols = rowsToSave.get(rowKey);
 					
-					if (rowKey.startsWith("map-key-value-pairs"))
+					if (rowKey.startsWith("map-key-value-pairs") || rowKey.startsWith("set-key-index"))
 						cf.deleteRow(rowKey);
 					
 					for (String col : cols.keySet()) {

@@ -3,6 +3,7 @@ package org.apollo.orm;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +14,7 @@ import org.apache.cassandra.db.marshal.TimeUUIDType;
 import org.apache.log4j.Logger;
 
 
-class ClassConfig {
+class ClassConfig implements ApolloConstants {
 	private static Logger logger = Logger.getLogger(ClassConfig.class);
 	
 	String cfName;
@@ -220,6 +221,26 @@ class ClassConfig {
 			return false;
 		
 		return mapOfMaps.contains(prop);
+	}
+	
+	public String getMethodColumn(String prop, boolean proposeDefault) {
+		String column = methodConfig.get(prop).get(ATTR_COLUMN);
+		
+		return column == null && proposeDefault ? prop : column;
+	}
+
+	public boolean isLazyLoaded(String prop) {
+		return Util.getBooleanValue(getMethodConfig(prop).get(ATTR_LAZY_LOADED), false);
+	}
+	
+	public Class<?> getMethodParameterizedType(String prop) throws Exception {
+		Method m = getGetMethodFromCache(prop);
+		
+		if (m.getGenericReturnType() instanceof ParameterizedType) {
+			return (Class<?>) ((ParameterizedType) m.getGenericReturnType()).getActualTypeArguments()[0];
+		}
+		
+		return null;
 	}
 
 	@Override

@@ -3,6 +3,7 @@ package org.apollo.orm.beans;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author harold
@@ -74,6 +75,8 @@ public class MyBean {
 	public List<String> listPropUmapped;
 	
 	public Map<String, String> mapPropUmapped;
+
+	public Set<String> setSetStringProp;
 	
 	public MyBean() {
 	}
@@ -344,5 +347,13 @@ public class MyBean {
 
 	public void setMapPropWithColumn(Map<String, String> mapPropWithColumn) {
 		this.mapPropWithColumn = mapPropWithColumn;
+	}
+
+	public Set<String> getSetSetStringProp() {
+		return setSetStringProp;
+	}
+
+	public void setSetSetStringProp(Set<String> setSetStringProp) {
+		this.setSetStringProp = setSetStringProp;
 	}
 }

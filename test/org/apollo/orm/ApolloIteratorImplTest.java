@@ -8,6 +8,7 @@ import java.util.Properties;
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 
 import org.apache.log4j.Logger;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -16,12 +17,19 @@ public class ApolloIteratorImplTest {
 	
 	static Logger logger = Logger.getLogger(ApolloIteratorImplTest.class);
 	
+	static Properties conf;
+	
+	static CassandraKeyspaceWrapper keyspaceWrapper;
+	
+	@BeforeClass
+	public static void beforeClass() throws Exception {
+		conf = TestConstants.Util.getTestConf();
+		
+		keyspaceWrapper = new CassandraKeyspaceWrapper(conf);
+	}
+	
 	@Test
-	public void test() throws Exception {
-		Properties conf = TestConstants.Util.getTestConf();
-		
-		CassandraKeyspaceWrapper keyspaceWrapper = new CassandraKeyspaceWrapper(conf);
-		
+	public void testColumnIterator() throws Exception {
 		int col_count = 220;
 		
 		List<String> data = new ArrayList<String>();
@@ -43,7 +51,7 @@ public class ApolloIteratorImplTest {
 			cf.insertColumn(rowKey, dat, "");
 		}
 		
-		Iterator<String> it = new ApolloIteratorImpl(cf, null, rowKey, "", "");
+		Iterator<String> it = ApolloConstants.Util.getApolloColumnIterator(cf, rowKey);
 		
 		assertTrue(it.hasNext());
 		
@@ -67,6 +75,51 @@ public class ApolloIteratorImplTest {
 		
 		assertEquals(col_count, c);
 		
+		cf.truncate();
+	}
+	
+	@Test
+	public void testRowIterator() throws Exception {
+		List<String> data = new ArrayList<String>();
 		
+		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper("TestTable");
+		
+		if (!keyspaceWrapper.doesColumnFamilyExist(cf.getColumnFamilyName()))
+			cf.createColumnFamily();
+		else
+			keyspaceWrapper.truncateColumnFamily(cf.getColumnFamilyName());
+		
+		int row_count = 220;
+		
+		for (int i = 0; i < row_count; i++) {
+			String dat = "row #" + i;
+			
+			data.add(dat);
+			
+			cf.insertColumn(dat, "col", ""+i);
+		}
+		
+		Iterator<String> it = ApolloConstants.Util.getApolloRowIterator(cf);
+		
+		List<String> data2 = new ArrayList<String>(data);
+		
+		int c = 0;
+		
+		for (; it.hasNext(); ) {
+			String dat = it.next();
+			
+			logger.debug("dat: " + dat + " c: " + (c++));
+			
+			assertNotNull(dat);
+			
+			assertTrue(data2.contains(dat));
+			
+			data2.remove(dat);
+		}
+		
+		assertEquals(0, data2.size());
+		assertEquals(row_count, c);
+		
+		cf.truncate();
 	}
 }

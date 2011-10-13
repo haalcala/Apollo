@@ -25,7 +25,7 @@ import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
 
-public class SessionFactoryImpl implements SessionFactory {
+public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 	private Logger logger = Logger.getLogger(SessionFactoryImpl.class);
 	
 	Map<Class<?>, ClassConfig> classToClassConfig;
@@ -57,7 +57,9 @@ public class SessionFactoryImpl implements SessionFactory {
 			long ctm2 = System.currentTimeMillis();
 			builder.setValidation(false);
 			Document document = builder.build(is);
-			if (logger.isDebugEnabled()) logger.debug("Document document = new SAXBuilder().build(is) ["+(System.currentTimeMillis()-ctm2)+"ms]");
+			
+			if (logger.isDebugEnabled()) 
+				logger.debug("Document document = new SAXBuilder().build(is) ["+(System.currentTimeMillis()-ctm2)+"ms]");
 			
 			List<?> contents = document.getContent();
 			
@@ -67,22 +69,24 @@ public class SessionFactoryImpl implements SessionFactory {
 				if (object instanceof Element) {
 					Element element = (Element) object;
 					
-					if (logger.isDebugEnabled()) logger.debug("*** " + element.getName() + " ***");
+					if (logger.isDebugEnabled()) 
+						logger.debug("*** " + element.getName() + " ***");
 					
-					if (element.getName().equals("hibernate-mapping")) {
+					if (element.getName().equals(NODE_HIBERNATE_MAPPING)) {
 						List<?> classes = element.getContent();
 						
 						for (Object object2 : classes) {
 							if (object2 instanceof Element) {
 								Element element2 = (Element) object2;
 								
-								if (element2.getName().equals("class")) {
+								if (element2.getName().equals(ATTR_CLASS)) {
 									List<?> attributes2 = element2.getAttributes();
 									
 									ClassConfig classConfig = new ClassConfig();
 									
 									for (Object object3 : attributes2) {
-										if (logger.isDebugEnabled()) logger.debug(object3);
+										if (logger.isDebugEnabled()) 
+											logger.debug(object3);
 										
 										if (object3 instanceof Attribute) {
 											Attribute attribute = (Attribute) object3;
@@ -90,10 +94,10 @@ public class SessionFactoryImpl implements SessionFactory {
 											String attr = attribute.getName();
 											String val = attribute.getValue();
 											
-											if (attr.equals("name")) {
+											if (attr.equals(ATTR_NAME)) {
 												classConfig.setClazz(Class.forName(val));
 											}
-											else if (attr.equals("table")) {
+											else if (attr.equals(ATTR_TABLE)) {
 												classConfig.setColumnFamily(val);
 												
 											}
@@ -108,16 +112,17 @@ public class SessionFactoryImpl implements SessionFactory {
 											
 											String prop = property.getName();
 											
-											if (logger.isDebugEnabled()) logger.debug("*** " + prop);
+											if (logger.isDebugEnabled()) 
+												logger.debug("*** " + prop);
 											
-											if (property.getName().equals("id")) {
-												String method_name = getAttribute(property, "name", null);
+											if (property.getName().equals(NODE_ID)) {
+												String method_name = getAttribute(property, ATTR_NAME, null);
 												
 												classConfig.idMethod = method_name;
 												classConfig.idColumn = method_name;
-												classConfig.idUnsaved = getAttribute(property, "unsaved-value", null);
+												classConfig.idUnsaved = getAttribute(property, ATTR_UNSAVED_VALUE, null);
 												
-												classConfig.idUnsaved = classConfig.idUnsaved != null && classConfig.idUnsaved.equals("null") ? null : classConfig.idUnsaved;
+												classConfig.idUnsaved = classConfig.idUnsaved != null && classConfig.idUnsaved.equals(STR_NULL) ? null : classConfig.idUnsaved;
 												
 												List idElements = property.getContent();
 												
@@ -125,27 +130,28 @@ public class SessionFactoryImpl implements SessionFactory {
 													if (object3 instanceof Element) {
 														Element element3 = (Element) object3;
 
-														if (element3.getName().equals("column")) {
-															classConfig.idColumn = getAttribute(element3, "name", classConfig.idColumn);
+														if (element3.getName().equals(ATTR_COLUMN)) {
+															classConfig.idColumn = getAttribute(element3, ATTR_NAME, classConfig.idColumn);
 														}
-														else if (element3.getName().equals("generator")) {
-															String _gen = getAttribute(element3, "class", "native");
+														else if (element3.getName().equals(ATTR_GENERATOR)) {
+															String _gen = getAttribute(element3, ATTR_CLASS, STR_NATIVE);
 															
-															if (_gen != null && _gen.equals("native"))
+															if (_gen != null && _gen.equals(STR_NATIVE))
 																classConfig.idGenerator = TimeUUIDType.class;
 														}
 													}
 												}
 											}
-											else if (property.getName().equals("property") 
-													|| property.getName().equals("many-to-one")
-													|| property.getName().equals("one-to-one")
-													|| property.getName().equals("set")) {
+											else if (property.getName().equals(NODE_PROPERTY) 
+													|| property.getName().equals(NODE_MANY_TO_ONE)
+													|| property.getName().equals(NODE_ONE_TO_ONE)
+													|| property.getName().equals(NODE_SET)) {
 												List attributes3 = property.getAttributes();
 												
-												String method_name = property.getAttribute("name").getValue();
+												String method_name = property.getAttribute(ATTR_NAME).getValue();
 												
-												if (logger.isDebugEnabled()) logger.debug("method_name: " + method_name);
+												if (logger.isDebugEnabled()) 
+													logger.debug("method_name: " + method_name);
 												
 												boolean hasColumn = false;
 												boolean needsColumn = true;
@@ -159,8 +165,9 @@ public class SessionFactoryImpl implements SessionFactory {
 														String attr = attribute.getName();
 														String val = attribute.getValue();
 														
-														if (!attr.equals("name")) {
-															if (logger.isDebugEnabled()) logger.debug("\t" + attr + " : " + val);
+														if (!attr.equals(ATTR_NAME)) {
+															if (logger.isDebugEnabled()) 
+																logger.debug("\t" + attr + " : " + val);
 															
 															classConfig.setMethodConfig(method_name, attr, val);
 															
@@ -170,22 +177,23 @@ public class SessionFactoryImpl implements SessionFactory {
 													}
 												}
 												
-												if (property.getName().equals("set")) {
+												if (property.getName().equals(NODE_SET)) {
 													needsColumn = false;
 													
-													Element elmManyToMany = property.getChild("many-to-many");
+													Element elmManyToMany = property.getChild(NODE_MANY_TO_MANY);
 													
-													Attribute attClass = elmManyToMany.getAttribute("class");
+													Attribute attClass = elmManyToMany.getAttribute(ATTR_CLASS);
 													
 													String attClass_val = attClass.getValue();
 													
-													if (logger.isDebugEnabled()) logger.debug("attClass_val: " + attClass_val);
+													if (logger.isDebugEnabled()) 
+														logger.debug("attClass_val: " + attClass_val);
 													
-													classConfig.setMethodConfig(method_name, "class", attClass_val);
+													classConfig.setMethodConfig(method_name, ATTR_CLASS, attClass_val);
 												}
 												
 												if (!hasColumn && needsColumn)
-													classConfig.setMethodConfig(method_name, "column", method_name);
+													classConfig.setMethodConfig(method_name, ATTR_COLUMN, method_name);
 											}
 											else {
 												logger.warn("Ignoring unrecognised tag '" + property.getName() + "'");
@@ -205,7 +213,8 @@ public class SessionFactoryImpl implements SessionFactory {
 									if (!columnToClassConfig.containsKey(classConfig.cfName))
 										columnToClassConfig.put(classConfig.cfName, classConfig);
 									
-									if (logger.isDebugEnabled()) logger.debug("ClassConfig: " + classConfig);
+									if (logger.isDebugEnabled()) 
+										logger.debug("ClassConfig: " + classConfig);
 								}
 							}
 						}
@@ -217,7 +226,8 @@ public class SessionFactoryImpl implements SessionFactory {
 			throw new ApolloException(e);
 		}
 		finally {
-			if (logger.isDebugEnabled()) logger.debug("addClassConfiguration - done ["+(System.currentTimeMillis()-ctm)+"ms]");
+			if (logger.isDebugEnabled()) 
+				logger.debug("addClassConfiguration - done ["+(System.currentTimeMillis()-ctm)+"ms]");
 		}
 	}
 
@@ -241,16 +251,16 @@ public class SessionFactoryImpl implements SessionFactory {
 					cf.createColumnFamily();
 				
 				if (logger.isDebugEnabled())
-					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed("__rstat__"));
+					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed(SYS_COL_RSTAT));
 				
-				if (!cf.isColumnIndexed("__rstat__"))
-					cf.updateColumnFamilyMetaData("__rstat__", ColumnIndexType.KEYS, ComparatorType.UTF8TYPE);
+				if (!cf.isColumnIndexed(SYS_COL_RSTAT))
+					cf.updateColumnFamilyMetaData(SYS_COL_RSTAT, ColumnIndexType.KEYS, ComparatorType.UTF8TYPE);
 
 				Set<String> methods = cc.getMethods();
 				
 				if (methods != null) {
 					for (String prop : methods) {
-						String table = cc.getMethodConfig(prop).get("table");
+						String table = cc.getMethodConfig(prop).get(ATTR_TABLE);
 						
 						if (table != null) {
 							cf = getCassandraColumnFamilyWrapper(table);
@@ -273,9 +283,9 @@ public class SessionFactoryImpl implements SessionFactory {
 
 						Class<?> get_method_type = null, set_method_type = null;
 
-						String set_method_name = "set" + prop.substring(0, 1).toUpperCase() + prop.substring(1);
-						String get_method_name = "get" + prop.substring(0, 1).toUpperCase() + prop.substring(1);
-						String is_method_name = "is" + prop.substring(0, 1).toUpperCase() + prop.substring(1);
+						String set_method_name = METHOD_PREFIX_SET + prop.substring(0, 1).toUpperCase() + prop.substring(1);
+						String get_method_name = METHOD_PREFIX_GET + prop.substring(0, 1).toUpperCase() + prop.substring(1);
+						String is_method_name = METHOD_PREFIX_IS + prop.substring(0, 1).toUpperCase() + prop.substring(1);
 						
 						Method get_method = null;
 
@@ -355,7 +365,7 @@ public class SessionFactoryImpl implements SessionFactory {
 						/*
 						 * Determine if such a class should be proxied.
 						 */
-						String lazy_loaded = method_config.get("lazy-loaded");
+						String lazy_loaded = method_config.get(ATTR_LAZY_LOADED);
 						if (lazy_loaded != null && lazy_loaded.equalsIgnoreCase("true")) {
 							cc.shouldProxy = true;
 
