@@ -1,7 +1,6 @@
 package org.apollo.orm;
 
 import java.io.InputStream;
-import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -18,7 +17,6 @@ import me.prettyprint.hector.api.ddl.ComparatorType;
 import net.sf.ehcache.CacheManager;
 
 import org.apache.cassandra.db.marshal.TimeUUIDType;
-import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.log4j.Logger;
 import org.jdom.Attribute;
 import org.jdom.Document;

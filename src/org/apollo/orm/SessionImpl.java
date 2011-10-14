@@ -101,6 +101,8 @@ public class SessionImpl implements Session, ApolloConstants {
 			ret = doPropertyInjection(idValue, cols, classConfig, ret, prop, false);
 			
 			if (ret == null) {
+				logger.warn("Returning null coz doPropertyInjection method returned 'null' which is usually caused by missing required fields.");
+				
 				removeObjectFromCache(classConfig.clazz, idValue);
 				return null;
 			}
@@ -358,7 +360,15 @@ public class SessionImpl implements Session, ApolloConstants {
 	}
 	
 	public <T> T find(Class<T> clazz, Serializable id) throws ApolloException {
-		return find(clazz, id, null);
+		if (clazz == null || id == null)
+			throw new NullPointerException();
+		
+		try {
+			return find(clazz, id, null);
+		} catch (ApolloException e) {
+			e.printStackTrace();
+			throw e;
+		}
 	}
 	
 	public <T> T find(Class<T> clazz, Serializable id, Object inverse) throws ApolloException {
@@ -542,11 +552,9 @@ public class SessionImpl implements Session, ApolloConstants {
 					value = o == null ? null : o.toString();
 				}
 				else if (returnType == Timestamp.class) {
-					SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-					
 					Timestamp ts = (Timestamp) cc.getPropertyMethodValue(object, prop);
 
-					value = ts != null ? sdf.format(ts) : null;
+					value = ts != null ? Util.getString(ts) : null;
 				}
 				else if (returnType == Map.class) {
 					// if (logger.isDebugEnabled()) logger.debug("Saving property '" + prop + "' of type " + Map.class);
@@ -676,16 +684,13 @@ public class SessionImpl implements Session, ApolloConstants {
 					}
 				}
 				else {
-					String _class = propConfig.get(ATTR_CLASS);
+					//String _class = propConfig.get(ATTR_CLASS);
 					
-					if (logger.isDebugEnabled())
-						logger.debug("Checking if class belongs to any of the mapped classes: " + _class);
+					//if (logger.isDebugEnabled())
+					//	logger.debug("Checking if class belongs to any of the mapped classes: " + _class);
 					
-					if (logger.isDebugEnabled())
-						logger.debug("Checking if class belongs to any of the mapped classes: " + _class);
-					
-					if (_class != null) {
-						Class clazz = Class.forName(_class);
+					//if (_class != null) {
+						Class clazz = cc.getPropertyType(prop);
 
 						ClassConfig cc2 = classToClassConfig.get(clazz);
 						
@@ -701,7 +706,7 @@ public class SessionImpl implements Session, ApolloConstants {
 							if (value == null && notReallyNull)
 								checkForNull = false;
 						}
-					}
+					//}
 				}
 				
 				if (checkForNull && value == null && propConfig.get(ATTR_NOT_NULL) != null 

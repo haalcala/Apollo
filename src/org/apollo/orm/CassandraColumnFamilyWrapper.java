@@ -55,6 +55,7 @@ import org.apache.cassandra.thrift.IndexType;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+import org.apollo.orm.ApolloConstants.Util;
 
 
 public class CassandraColumnFamilyWrapper {
@@ -659,8 +660,7 @@ public class CassandraColumnFamilyWrapper {
 					expected = exp.getExpected().toString();
 				}
 				else if (propType == Timestamp.class) {
-					// TODO
-					throw new IllegalArgumentException("feature not implemented yet");
+					expected = Util.getString((Timestamp) exp.getExpected());
 				}
 				else if (propType == List.class) {
 					// TODO

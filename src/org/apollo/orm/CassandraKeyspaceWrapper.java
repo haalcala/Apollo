@@ -81,6 +81,7 @@ public class CassandraKeyspaceWrapper {
 		logger.debug("cassandraThriftSocketTimeout: " + cassandraThriftSocketTimeout);
 		logger.debug("maxWaitTimeWhenExhausted: " + maxWaitTimeWhenExhausted);
 		logger.debug("cache_conf: " + cache_conf);
+		logger.debug("keyspace_name: " + keyspace_name);
 		
 		CassandraHostConfigurator cassandraHostConfigurator = new CassandraHostConfigurator(host);
 		

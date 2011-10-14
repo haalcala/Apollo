@@ -78,7 +78,7 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 		throw new NoSuchElementException();
 	}
 	
-	void loadNewPage() {
+	private void loadNewPage() {
 		if (keyi == -1 || keyi > itemsPerPage) {
 			if (logger.isDebugEnabled())
 				logger.debug("keyi: " + keyi);
@@ -102,12 +102,14 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 				if (rows != null && rows.size() > 0) {
 					cols = rows.get(rowKey);
 
-					it = cols.keySet().iterator();
+					if (cols != null) {
+						it = cols.keySet().iterator();
 
-					if (keyi > itemsPerPage) // discard the first result
-						it.next();
+						if (keyi > itemsPerPage) // discard the first result
+							it.next();
 
-					keyi = 0;
+						keyi = 0;
+					}
 				}
 			}
 		}
