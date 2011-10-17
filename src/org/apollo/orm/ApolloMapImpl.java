@@ -1,15 +1,12 @@
 package org.apollo.orm;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
-import me.prettyprint.cassandra.utils.TimeUUIDUtils;
-
 import org.apache.log4j.Logger;
+import org.apollo.orm.ApolloConstants.Util;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ApolloMapImpl<T> implements Map<String, T> {
@@ -25,6 +22,8 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 	private String prop;
 
 	protected ClassConfig classConfig;
+
+	private Session session;
 
 	@Autowired
 	public ApolloMapImpl(SessionFactory factory, String rowKey, CassandraColumnFamilyWrapper cf, 
@@ -104,18 +103,13 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 			}
 			else {
 				try {
-					mapKey = cf.getColumnValue(getKeyIndexRowKey(rowKey), key.toString());
+					mapKey = cf.getColumnValue(rowKey, classConfig.getMethodColumn(Util.getMapKey(mapKey, prop), true));
 					
 					if (logger.isDebugEnabled())
 						logger.debug("mapKey: " + mapKey + " key: '" + key + "' rowKey: " + rowKey);
 					
 					if (mapKey == null) {
-						mapKey = getNewSubKey(rowKey, key.toString());
-						
-						if (logger.isDebugEnabled())
-							logger.debug("Creating new mapKey: " + mapKey + " rowKey: " + rowKey);
-						
-						cf.insertColumn(getKeyIndexRowKey(rowKey), key.toString(), mapKey);
+						cf.insertColumn(rowKey, Util.getMapKey(mapKey, prop), key.toString());
 					}
 					
 					ret = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, null, false, null);
@@ -131,19 +125,19 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 		return ret;
 	}
 	
-	public String getKeyIndexRowKey(String rowKey) {
-		return rowKey + "-key-index";
-	}
-	
-	public String getNewSubKey(String rowKey, String key) {
-		return rowKey +"["+key.toString()+"][" + TimeUUIDUtils.getUniqueTimeUUIDinMillis() + "]";
-	}
-
 	public boolean isEmpty() {
 		return getMap().isEmpty();
 	}
 
 	public Set<String> keySet() {
+		try {
+			return new ApolloSetImpl<String>(factory.getSession(), prop, cf, classConfig, rowKey, "", "", 0);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
+		
+		/*
 		return new Set<String>() {
 			
 			Map<String, String> cols;
@@ -283,6 +277,7 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 				return true;
 			}
 		};
+		*/
 	}
 
 	public T put(String key, T value) {
@@ -295,14 +290,14 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 			T cols = (T) getMap().get(key.toString());
 			
 			if (cols == null) {
-				String mapKey = getNewSubKey(rowKey, key);
+				String mapKey = Util.getMapKey(rowKey, prop);
 				
 				try {
 					cols = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, (Map<String, String>) value, false, null);
 
 					value = cols;
 
-					cf.insertColumn(getKeyIndexRowKey(rowKey), key, mapKey);
+					cf.insertColumn(rowKey, key, mapKey);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

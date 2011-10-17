@@ -42,6 +42,8 @@ public interface ApolloConstants {
 	public static final String METHOD_PREFIX_IS = "is";
 
 	public static final String SYS_COL_RSTAT = "__rstat__";
+	
+	public static final String SYS_STR_MAP_KEY_PREFIX = "map-key-prefix";
 
 	public static final String SYSTEM_DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
 
@@ -128,6 +130,10 @@ public interface ApolloConstants {
 			SimpleDateFormat sdf = new SimpleDateFormat(SYSTEM_DATE_FORMAT);
 			
 			return sdf.format(timestamp);
+		}
+		
+		public static String getMapKey(String rowKey, String prop) {
+			return SYS_STR_MAP_KEY_PREFIX + " [" + rowKey + "|" + prop + "]";
 		}
 	}
 }
