@@ -55,7 +55,6 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 
 	private String prop;
 	
-	@Override
 	public void remove() {
 		if (curKey == null)
 			throw new NoSuchElementException();
@@ -63,7 +62,6 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 		cf.deleteColumn(rowKey, curKey);
 	}
 	
-	@Override
 	public String next() {
 		if (it != null) {
 			curKey = it.next();
@@ -115,7 +113,6 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 		}
 	}
 	
-	@Override
 	public boolean hasNext() {
 		if (maxItems > 0 && keyCount >= maxItems) {
 			it = null;

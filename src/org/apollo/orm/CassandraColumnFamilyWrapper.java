@@ -128,18 +128,28 @@ public class CassandraColumnFamilyWrapper {
 		
 		thriftCfDef.setDefaultValidationClass(comparatorType.getClassName());
 		
-		keyspaceWrapper.getCluster().addColumnFamily(thriftCfDef);
-		
 		boolean found = false;
 		long procStart = System.currentTimeMillis();
 		
 		do {
+			try {
+				keyspaceWrapper.getCluster().addColumnFamily(thriftCfDef);
+			} catch (HectorException e1) {
+				if (e1.getMessage().indexOf("Cluster schema does not yet agree") == -1)
+					throw e1;
+				
+				if (logger.isDebugEnabled())
+					logWarn("ColumnFamily created failed. Retrying.");
+				
+				continue;
+			}
+
 			KeyspaceDefinition ksd = keyspaceWrapper.getCluster().describeKeyspace(keyspace.getKeyspaceName());
 			
 			List<ColumnFamilyDefinition> cfs = ksd.getCfDefs();
 			
 			for (ColumnFamilyDefinition cf : cfs) {
-				if (cf.getName().equals(columnFamily)) {
+				if (cf.getName().equals(columnFamily)) { 
 					found = true;
 					break;
 				}
@@ -1165,5 +1175,9 @@ public class CassandraColumnFamilyWrapper {
 	
 	void logDebug(String msg) {
 		logger.debug("CFW[" + columnFamily + "] " + msg);
+	}
+	
+	void logWarn(String msg) {
+		logger.warn("CFW[" + columnFamily + "] " + msg);
 	}
 }

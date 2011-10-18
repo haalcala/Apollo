@@ -51,17 +51,14 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 			logger.debug("ApolloSetImpl:: rowKey: " + rowKey + " startCol: " + startCol + " endCol: " + endCol + " maxCols: " + maxCols + " prop: " + prop);
 	}
 
-	@Override
 	public int size() {
 		return -1;
 	}
 
-	@Override
 	public boolean isEmpty() {
 		return false;
 	}
 
-	@Override
 	public boolean contains(Object o) {
 		if (o == null)
 			throw new NullPointerException();
@@ -80,19 +77,16 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		return true;
 	}
 
-	@Override
 	public Iterator<T> iterator() {
 		return new Iterator<T>() {
 			Iterator<String> it = Util.getApolloColumnIterator(cf, rowKey);
 			
 			String currentKey;
 
-			@Override
 			public boolean hasNext() {
 				return it.hasNext();
 			}
 
-			@Override
 			public T next() {
 				try {
 					currentKey = it.next();
@@ -130,7 +124,6 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 				}
 			}
 
-			@Override
 			public void remove() {
 				if (currentKey == null)
 					throw new NoSuchElementException();
@@ -140,19 +133,16 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		};
 	}
 
-	@Override
 	public Object[] toArray() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public <T> T[] toArray(T[] a) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	@Override
 	public boolean add(T e) {
 		try {
 			if (e == null)
@@ -189,7 +179,6 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		
 	}
 
-	@Override
 	public boolean remove(Object o) {
 		checkValidClass();
 		
@@ -211,24 +200,20 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		return true;
 	}
 
-	@Override
 	public boolean containsAll(Collection<?> c) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean addAll(Collection<? extends T> c) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean retainAll(Collection<?> c) {
 		return false;
 	}
 
-	@Override
 	public boolean removeAll(Collection<?> c) {
 		
 		for (Object object : c) {
@@ -241,7 +226,6 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		return true;
 	}
 
-	@Override
 	public void clear() {
 		cf.deleteRow(rowKey);
 	}

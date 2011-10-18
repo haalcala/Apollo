@@ -113,7 +113,8 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 					}
 					
 					ret = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, null, false, null);
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			}
