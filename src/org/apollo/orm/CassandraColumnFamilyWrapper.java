@@ -57,6 +57,7 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apollo.orm.ApolloConstants.Util;
 
+import static org.apollo.orm.ApolloConstants.*;
 
 public class CassandraColumnFamilyWrapper {
 	private Logger logger = Logger.getLogger(getClass());
@@ -88,7 +89,8 @@ public class CassandraColumnFamilyWrapper {
 	}
 
 	public void insertColumn(String key, String columnName, String value) {
-		logDebug("Inserting key: '" + key + "' col: '" + columnName + "' val: '" + value + "'");
+		if (logger.isDebugEnabled())
+			logDebug("Inserting key: '" + key + "' col: '" + columnName + "' val: '" + value + "'");
 		
 		if (key == null || (key != null && "".equals(key)))
 			throw new RuntimeException("the parameter 'key' can neither be null or empty string");
@@ -117,7 +119,8 @@ public class CassandraColumnFamilyWrapper {
 	}
 	
 	public void createColumnFamily() {
-		logDebug("Creating "+(isSuper ? "Super" : "Standard")+" column '" + columnFamily + "'");
+		if (logger.isDebugEnabled())
+			logDebug("Creating "+(isSuper ? "Super" : "Standard")+" column '" + columnFamily + "'");
 
 		ColumnFamilyDefinition cfDef = HFactory.createColumnFamilyDefinition(keyspace.getKeyspaceName(), columnFamily, comparatorType, columnMetadata);
 
@@ -135,7 +138,7 @@ public class CassandraColumnFamilyWrapper {
 			try {
 				keyspaceWrapper.getCluster().addColumnFamily(thriftCfDef);
 			} catch (HectorException e1) {
-				if (e1.getMessage().indexOf("Cluster schema does not yet agree") == -1)
+				if (e1.getMessage().indexOf(STR_CLUSTER_SCHEMA_DOES_NOT_YET_AGREE) == -1)
 					throw e1;
 				
 				if (logger.isDebugEnabled())
@@ -183,7 +186,8 @@ public class CassandraColumnFamilyWrapper {
 		}
 		
 		if (cfDef != null && columnMetadata != null) {
-			logDebug("Found existing and custom ColumnFamilyDefinition");
+			if (logger.isDebugEnabled())
+				logDebug("Found existing and custom ColumnFamilyDefinition");
 			
 			List<ColumnDefinition> _colDef = new ArrayList<ColumnDefinition>(cfDef.getColumnMetadata());
 			
@@ -299,7 +303,8 @@ public class CassandraColumnFamilyWrapper {
 		if (columnDefs != null) {
 			List<ColumnDef> cols = null;
 			
-			logDebug("Building column definitions ...");
+			if (logger.isDebugEnabled())
+				logDebug("Building column definitions ...");
 			
 			for (String _columnname : columnDefs.keySet()) {
 				Map<String, String> _columndefs = columnDefs.get(_columnname);
@@ -358,7 +363,9 @@ public class CassandraColumnFamilyWrapper {
 	
 	public void makeKeyspace(String keyspace, List<ColumnFamilyDefinition> cf_defs)
 			throws InvalidRequestException, TException {
-		logDebug("Creating keyspace: " + keyspace);
+		if (logger.isDebugEnabled())
+			logDebug("Creating keyspace: " + keyspace);
+		
 		try {
 			KeyspaceDefinition ks_def = HFactory.createKeyspaceDefinition(keyspace,
 					"org.apache.cassandra.locator.SimpleStrategy", 1, cf_defs);
@@ -415,7 +422,8 @@ public class CassandraColumnFamilyWrapper {
 	    QueryResult<OrderedSuperRows<String, String, String, String>> result = query.execute();
 
 	    if (result != null) {
-	    	logDebug("Found a super column with start key: '" + startKey + "'");
+			if (logger.isDebugEnabled())
+				logDebug("Found a super column with start key: '" + startKey + "'");
 	    	
 	    	OrderedSuperRows<String, String, String, String> rows = result.get();
 	    	
@@ -423,33 +431,37 @@ public class CassandraColumnFamilyWrapper {
 	    		Map<String, Map<String, String>> map = null;
 	    		
 	    		String rowKey = row.getKey();
-	    		
-	    		logDebug("Row key: '" + rowKey + "'");
-	    		
+
+	    		if (logger.isDebugEnabled())
+	    			logDebug("Row key: '" + rowKey + "'");
+
 	    		SuperSlice<String, String, String> slice = row.getSuperSlice();
-	    		
+
 	    		List<HSuperColumn<String,String,String>> cols = slice.getSuperColumns();
-	    		
-	    		logDebug("cols : " + cols + " size : " + (cols != null ? slice.getColumnByName(super_column_names[0]) + " (" + cols.size() + ")" : null));
-	    		
+
+	    		if (logger.isDebugEnabled())
+	    			logDebug("cols : " + cols + " size : " + (cols != null ? slice.getColumnByName(super_column_names[0]) + " (" + cols.size() + ")" : null));
+
 	    		for (HSuperColumn<String, String, String> col : cols) {
 	    			Map<String, String> map2 = null;
-	    			
+
 	    			String superColumnKey = col.getName();
-	    			
-	    			logDebug("Super column key '" + superColumnKey + "'");
-	    			
+
+	    			if (logger.isDebugEnabled())
+	    				logDebug("Super column key '" + superColumnKey + "'");
+
 	    			List<HColumn<String, String>> cols2 = col.getColumns();
-	    			
+
 	    			for (HColumn<String, String> col2 : cols2) {
-						String _col = col2.getName();
-						String _val = col2.getValue();
-						
-						if (map2 == null)
-							map2 = new LinkedHashMap<String, String>();
-						
-						logDebug("Found a column: '" + _col + "' : '" + _val + "'");
-						
+	    				String _col = col2.getName();
+	    				String _val = col2.getValue();
+
+	    				if (map2 == null)
+	    					map2 = new LinkedHashMap<String, String>();
+
+	    				if (logger.isDebugEnabled())
+	    					logDebug("Found a column: '" + _col + "' : '" + _val + "'");
+
 						map2.put(_col, _val);
 					}
 	    			
@@ -494,7 +506,8 @@ public class CassandraColumnFamilyWrapper {
 		
 		int rowsPerPage = hasHandler ? handler.getRowsPerPage() : maxRows;
 		
-		logDebug("createRangeSuperSlicesQuery: rowsPerPage: " + rowsPerPage + " startKey: " + startKey);
+		if (logger.isDebugEnabled())
+			logDebug("createRangeSuperSlicesQuery: rowsPerPage: " + rowsPerPage + " startKey: " + startKey);
 		
 		RangeSuperSlicesQuery<String, String, String, String> query = createRangeSuperSlicesQuery(keyspace, 
 				stringSerializer, stringSerializer, stringSerializer, stringSerializer);
@@ -509,7 +522,8 @@ public class CassandraColumnFamilyWrapper {
 		QueryResult<OrderedSuperRows<String, String, String, String>> result = query.execute();
 
 		if (result != null) {
-			logDebug("Found a super column with start key: '" + startKey + "'");
+			if (logger.isDebugEnabled())
+				logDebug("Found a super column with start key: '" + startKey + "'");
 
 			OrderedSuperRows<String, String, String, String> rows = result.get();
 			
@@ -538,7 +552,8 @@ public class CassandraColumnFamilyWrapper {
 
 					List<HSuperColumn<String,String,String>> cols = slice.getSuperColumns();
 
-					logDebug("cols : " + cols + " size : " + (cols != null ? slice.getColumnByName(super_column_names[0]) + " (" + cols.size() + ")" : null));
+					if (logger.isDebugEnabled())
+						logDebug("cols : " + cols + " size : " + (cols != null ? slice.getColumnByName(super_column_names[0]) + " (" + cols.size() + ")" : null));
 
 					for (HSuperColumn<String, String, String> col : cols) {
 						String superColumnKey = col.getName();
@@ -826,7 +841,8 @@ public class CassandraColumnFamilyWrapper {
 	}
 
 	public void deleteRow(String key) {
-		logDebug("Deleting row with key '" + key + "'");
+		if (logger.isDebugEnabled())
+			logDebug("Deleting row with key '" + key + "'");
 		
 		Mutator<String> mutator = HFactory.createMutator(keyspace, stringSerializer);
 		mutator.delete(key, columnFamily, null, stringSerializer);
@@ -834,7 +850,9 @@ public class CassandraColumnFamilyWrapper {
 	}
 	
 	public void deleteColumn(String key, String column) {
-		//logDebug("Deleting column key: '" + key + "' col: '" + column + "'");
+		if (logger.isDebugEnabled())
+			logDebug("Deleting column key: '" + key + "' col: '" + column + "'");
+		
 		Mutator<String> mutator = HFactory.createMutator(keyspace, stringSerializer);
 		mutator.delete(key, columnFamily, column, stringSerializer);
 		mutator.execute();
@@ -1137,7 +1155,8 @@ public class CassandraColumnFamilyWrapper {
 		if (isSuper)
 			throw new RuntimeException("saveRowsAndColumns is only for standard column families");
 		
-		logDebug("Trying to save : " + rows);
+		if (logger.isDebugEnabled())
+			logDebug("Trying to save : " + rows);
 		
 		for (String rowKey : rows.keySet()) {
 			Map<String, String> cols = rows.get(rowKey);
@@ -1145,7 +1164,8 @@ public class CassandraColumnFamilyWrapper {
 			for (String col : cols.keySet()) {
 				String val = cols.get(col);
 				
-				logDebug("Saving key: " + rowKey + " col: " + col + " val: " + val);
+				if (logger.isDebugEnabled())
+					logDebug("Saving key: " + rowKey + " col: " + col + " val: " + val);
 				
 				insertColumn(rowKey, col, val);
 			}
@@ -1157,7 +1177,8 @@ public class CassandraColumnFamilyWrapper {
 			throw new RuntimeException("saveRowsAndColumns is only for standard column families");
 		
 		for (String rowKey : rows.keySet()) {
-			logDebug("RowKey: " + rowKey);
+			if (logger.isDebugEnabled())
+				logDebug("RowKey: " + rowKey);
 			
 			Map<String, Map<String, String>> scols = rows.get(rowKey);
 			
@@ -1175,6 +1196,9 @@ public class CassandraColumnFamilyWrapper {
 	
 	void logDebug(String msg) {
 		logger.debug("CFW[" + columnFamily + "] " + msg);
+	}
+	void logError(String msg) {
+		logger.error("CFW[" + columnFamily + "] " + msg);
 	}
 	
 	void logWarn(String msg) {

@@ -36,6 +36,7 @@ public interface ApolloConstants {
 	public static final String STR_NATIVE = "native";
 	public static final String STR_NULL = "null";
 
+	public static final String STR_CLUSTER_SCHEMA_DOES_NOT_YET_AGREE = "Cluster schema does not yet agree";
 
 	public static final String METHOD_PREFIX_SET = "set";
 	public static final String METHOD_PREFIX_GET = "get";
