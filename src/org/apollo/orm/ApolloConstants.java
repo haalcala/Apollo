@@ -44,8 +44,11 @@ public interface ApolloConstants {
 
 	public static final String SYS_COL_RSTAT = "__rstat__";
 	
+	public static final String SYS_APOLLO_SYMBOL_PREFIX = "apollo://";
+	
 	public static final String SYS_STR_MAP_KEY_PREFIX = "map-key-prefix";
-
+	public static final String SYS_STR_SET_KEY_INDEX = "set-key-index";
+	
 	public static final String SYSTEM_DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
 
 
@@ -134,7 +137,11 @@ public interface ApolloConstants {
 		}
 		
 		public static String getMapKey(String rowKey, String prop) {
-			return SYS_STR_MAP_KEY_PREFIX + " [" + rowKey + "|" + prop + "]";
+			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX + "[" + rowKey + "|" + prop + "]";
+		}
+
+		public static String getSetKey(String idValue, String prop) {
+			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX + "[" + idValue + "|"+prop+"]";
 		}
 	}
 }

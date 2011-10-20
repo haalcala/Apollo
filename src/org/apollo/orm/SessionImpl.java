@@ -493,7 +493,8 @@ public class SessionImpl implements Session, ApolloConstants {
 		if (object == null)
 			throw new NullPointerException();
 		
-		if (logger.isDebugEnabled()) logger.debug("*********************   Saving class "+object.getClass()+" object " + object + " **************************");
+		if (logger.isDebugEnabled()) 
+			logger.debug("*********************   Saving class "+object.getClass()+" object " + object + " **************************");
 		
 		try {
 			ClassConfig cc = getClassConfig(object);
@@ -578,7 +579,7 @@ public class SessionImpl implements Session, ApolloConstants {
 									if (rowsToSave == null) 
 										rowsToSave = new LinkedHashMap<String, Map<String, String>>();
 									
-									String mapKey = "map-key-value-pairs [" + idValue + "|" + prop + "]";
+									String mapKey = Util.getMapKey(idValue, prop);
 									
 									Map<String, String> cols = rowsToSave.get(mapKey);
 
@@ -607,13 +608,13 @@ public class SessionImpl implements Session, ApolloConstants {
 						}
 					}
 					else {
-						if (!Enhancer.isEnhanced(object.getClass())) {
-							Object method_value = cc.getPropertyMethodValue(object, prop);
-							
+						Object method_value = cc.getPropertyMethodValue(object, prop);
+						
+						if (!(method_value instanceof ApolloMapImpl<?>)) { // ApolloMapImpl direct saves to the database
 							Map<String, ?> map = null;
-							
+
 							CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(child_table);
-							
+
 							if (method_value == null) {
 								if (cc.isMapOfMaps(prop))
 									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true, null);
@@ -626,7 +627,7 @@ public class SessionImpl implements Session, ApolloConstants {
 								else
 									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false, null);
 							}
-							
+
 							cc.setPropertyMethodValue(object, prop, map);
 						}
 					}
@@ -656,7 +657,7 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					//CassandraColumnFamilyWrapper setClass_cf = cc2 != null ? factory.getCassandraColumnFamilyWrapper(cc2.cfName) : cf;
 					
-					String child_cf_rowKey = "set-key-index [" + idValue + "|"+prop+"]";
+					String child_cf_rowKey = Util.getSetKey(idValue, prop);
 					
 					// setClass_cf.deleteRow(child_cf_rowKey);
 					
@@ -734,14 +735,15 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					Map<String, String> cols = rowsToSave.get(rowKey);
 					
-					if (rowKey.startsWith("map-key-value-pairs") || rowKey.startsWith("set-key-index"))
+					if (rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX) 
+							|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX))
 						cf.deleteRow(rowKey);
 					
 					for (String col : cols.keySet()) {
 						cf.insertColumn(rowKey, col, cols.get(col));
 					}
 
-					String _rstat = cf.getColumnValue(idValue, "__rstat__");
+					String _rstat = cf.getColumnValue(idValue, SYS_COL_RSTAT);
 					
 					int rstat = 0;
 					
@@ -750,7 +752,7 @@ public class SessionImpl implements Session, ApolloConstants {
 					} catch (Exception e) {
 					}
 					
-					cf.insertColumn(idValue, "__rstat__", "" + rstat);
+					cf.insertColumn(idValue, SYS_COL_RSTAT, "" + rstat);
 				}
 			}
 			

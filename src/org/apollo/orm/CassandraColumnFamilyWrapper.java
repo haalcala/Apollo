@@ -243,17 +243,37 @@ public class CassandraColumnFamilyWrapper {
 				columnDefinition.setValidationClass(comparator.getClassName());
 				
 				columnFamilyDefinition.addColumnDefinition(columnDefinition);
+				
+				boolean ready = false;
 
-				try {
-					cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition));
+				do {
+					try {
+						cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition));
 
-					if (logger.isDebugEnabled())
-						logger.debug("Succesfully added column index for column '" + column + "'");
-				} catch (Exception e) {
-					if (e.getMessage().indexOf("Duplicate index") == -1) {
-						throw new ApolloException(e);
+						if (logger.isDebugEnabled())
+							logger.debug("Succesfully added column index for column '" + column + "'");
+						
+						ready = true;
+					} catch (Exception e) {
+						if (e.getMessage().indexOf("Cluster schema does not yet agree") > -1) {
+							if (logger.isDebugEnabled())
+								logWarn("Cluster schema does not yet agree");
+							
+							try {
+								Thread.sleep(1000);
+							} catch (InterruptedException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							
+							continue;
+						}
+						
+						if (e.getMessage().indexOf("Duplicate index") == -1) {
+							throw new ApolloException(e);
+						}
 					}
-				}
+				} while (!ready);
 				
 				break;
 			}
