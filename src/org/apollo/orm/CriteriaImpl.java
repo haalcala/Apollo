@@ -13,6 +13,7 @@ import java.util.TreeSet;
 import org.apache.log4j.Logger;
 
 import org.apache.log4j.Logger;
+import static org.apollo.orm.ApolloConstants.*;
 
 public class CriteriaImpl<T> implements Criteria<T> {
 	private static Logger logger = Logger.getLogger(CriteriaImpl.class);
@@ -58,7 +59,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 				}
 			}
 			else {
-				add(Expression.eq("__rstat__", "0"));
+				add(Expression.eq(SYS_COL_RSTAT, "0"));
 				
 				Map<String, Map<String, String>> rows = cf.findColumnWithValue(criterias, session, cc, cc.getColumnsAsList());
 				
@@ -76,6 +77,9 @@ public class CriteriaImpl<T> implements Criteria<T> {
 						logger.debug("Ordered Keys : " + orderedKeys);
 					
 					for (String rowKey : orderedKeys) {
+						if (rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX))
+							continue;
+						
 						Map<String, String> cols = rows.get(rowKey);
 						
 						Object object = session.colsToObject(rowKey, cols, cc, null);

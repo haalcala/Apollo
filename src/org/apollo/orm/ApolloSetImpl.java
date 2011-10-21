@@ -43,7 +43,8 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		this.session = session;
 		this.prop = prop;
 		
-		parameter_type = classConfig.getMethodParameterizedType(prop);
+		if (classConfig != null)
+			parameter_type = classConfig.getMethodParameterizedType(prop);
 		
 		isNative = Util.isNativelySupported(parameter_type);
 		

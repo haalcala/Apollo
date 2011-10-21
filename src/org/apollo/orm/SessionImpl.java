@@ -567,6 +567,8 @@ public class SessionImpl implements Session, ApolloConstants {
 					 */
 					String child_table = methodConfig.get(ATTR_TABLE);
 					
+					value = Util.getMapKey(idValue, prop);
+					
 					if (child_table == null) {
 						Map<String, ?> map = (Map<String, String>) cc.getPropertyMethodValue(object, prop);
 						
@@ -663,6 +665,8 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					cf.insertColumn(idValue, column, child_cf_rowKey);
 					
+					value = Util.getSetKey(idValue, prop);
+					
 					if (set != null) {
 						for (Object object2 : set) {
 							Object setClass_idValue = cc2 != null ? cc2.getIdValue(object2) : object2.toString();
@@ -709,6 +713,9 @@ public class SessionImpl implements Session, ApolloConstants {
 						}
 					//}
 				}
+				
+				if (logger.isDebugEnabled())
+					logger.debug("checkForNull: " + checkForNull + " value: " + value + " prop: " + prop + " propConfig: " + propConfig);
 				
 				if (checkForNull && value == null && propConfig.get(ATTR_NOT_NULL) != null 
 						&& propConfig.get(ATTR_NOT_NULL).equals("true"))
