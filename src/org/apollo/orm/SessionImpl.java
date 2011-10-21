@@ -501,6 +501,8 @@ public class SessionImpl implements Session, ApolloConstants {
 			
 			final CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(cc.getColumnFamily());
 			
+			Map<String, Map<String, Map<String, String>>> cfsToSave = null;
+			
 			Map<String, Map<String, String>> rowsToSave = null;
 			
 			String idValue = (String) cc.getIdValue(object);
@@ -560,81 +562,55 @@ public class SessionImpl implements Session, ApolloConstants {
 				else if (returnType == Map.class) {
 					// if (logger.isDebugEnabled()) logger.debug("Saving property '" + prop + "' of type " + Map.class);
 					
-					Map<String, String> methodConfig = cc.getMethodConfig(prop);
-					
 					/*
 					 * Check if there's any table specified
 					 */
-					String child_table = methodConfig.get(ATTR_TABLE);
+					String child_table = propConfig.get(ATTR_TABLE);
 					
 					value = Util.getMapKey(idValue, prop);
 					
-					if (child_table == null) {
+					Object method_value = cc.getPropertyMethodValue(object, prop);
+					
+					if (!(method_value instanceof ApolloMapImpl<?>)) {
 						Map<String, ?> map = (Map<String, String>) cc.getPropertyMethodValue(object, prop);
-						
+
 						if (logger.isDebugEnabled()) logger.debug("map : " + map);
 
 						if (map != null && map.size() > 0) {
-							boolean row_cleared = false;
 							for (String key : map.keySet()) {
-								if (child_table == null) {
-									if (rowsToSave == null) 
-										rowsToSave = new LinkedHashMap<String, Map<String, String>>();
-									
-									String mapKey = Util.getMapKey(idValue, prop);
-									
-									Map<String, String> cols = rowsToSave.get(mapKey);
+								String mapKey = Util.getMapKey(idValue, prop);
 
-									if (cols == null) {
-										cols = new LinkedHashMap<String, String>();
-										rowsToSave.put(mapKey, cols);
-									}
+								if (rowsToSave == null) 
+									rowsToSave = new LinkedHashMap<String, Map<String, String>>();
 
-									cols.put(key, (String) map.get(key));
-									
-									cols = rowsToSave.get(idValue);
-									
-									if (cols == null) {
-										cols = new LinkedHashMap<String, String>();
-										
-										rowsToSave.put(idValue, cols);
-									}
-									
-									cols.put(column, mapKey);
+								Map<String, String> cols = rowsToSave.get(mapKey);
+
+								if (cols == null) {
+									cols = new LinkedHashMap<String, String>();
+									rowsToSave.put(mapKey, cols);
 								}
-								else {
-									if (logger.isDebugEnabled()) 
-										logger.debug("Skipping as Map properties with 'table' attribute are saved in real-time.");
-								}
+
+								cols.put(key, (String) map.get(key));
 							}
 						}
-					}
-					else {
-						Object method_value = cc.getPropertyMethodValue(object, prop);
-						
-						if (!(method_value instanceof ApolloMapImpl<?>)) { // ApolloMapImpl direct saves to the database
-							Map<String, ?> map = null;
 
-							CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(child_table);
+						CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(child_table);
 
-							if (method_value == null) {
-								if (cc.isMapOfMaps(prop))
-									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true, null);
-								else
-									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, null, false, null);
-							}
-							else {
-								if (cc.isMapOfMaps(prop))
-									map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true, null);
-								else
-									map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false, null);
-							}
-
-							cc.setPropertyMethodValue(object, prop, map);
+						if (method_value == null) {
+							if (cc.isMapOfMaps(prop))
+								map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true, null);
+							else
+								map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, null, false, null);
 						}
+						else {
+							if (cc.isMapOfMaps(prop))
+								map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true, null);
+							else
+								map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false, null);
+						}
+
+						cc.setPropertyMethodValue(object, prop, map);
 					}
-					
-					checkForNull = false;
 				}
 				else if (returnType == List.class) {
 					List<?> list = (List<?>) cc.getPropertyMethodValue(object, prop);
@@ -657,23 +633,30 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					ClassConfig cc2 = isNative ? null : classToClassConfig.get(clazz);
 					
-					//CassandraColumnFamilyWrapper setClass_cf = cc2 != null ? factory.getCassandraColumnFamilyWrapper(cc2.cfName) : cf;
+					String child_table_key_suffix = methodConfig.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
 					
-					String child_cf_rowKey = Util.getSetKey(idValue, prop);
-					
-					// setClass_cf.deleteRow(child_cf_rowKey);
+					String child_cf_rowKey = Util.getSetKey(idValue, prop, child_table_key_suffix);
 					
 					cf.insertColumn(idValue, column, child_cf_rowKey);
 					
 					value = Util.getSetKey(idValue, prop);
+					
+					String table = methodConfig.get(ATTR_TABLE);
 					
 					if (set != null) {
 						for (Object object2 : set) {
 							Object setClass_idValue = cc2 != null ? cc2.getIdValue(object2) : object2.toString();
 							
 							if (setClass_idValue != null) {
-								if (rowsToSave == null) 
+								if (cfsToSave == null)
+									cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
+								
+								rowsToSave = cfsToSave.get(table);
+								
+								if (rowsToSave == null) {
 									rowsToSave = new LinkedHashMap<String, Map<String, String>>();
+									cfsToSave.put(table, rowsToSave);
+								}
 								
 								Map<String, String> cols = rowsToSave.get(child_cf_rowKey);
 								
@@ -721,8 +704,15 @@ public class SessionImpl implements Session, ApolloConstants {
 						&& propConfig.get(ATTR_NOT_NULL).equals("true"))
 					throw new IllegalArgumentException("null parameter detected for property '" + prop + "'");
 				
-				if (rowsToSave == null) 
+				if (cfsToSave == null)
+					cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
+				
+				rowsToSave = cfsToSave.get(cc.getColumnFamily());
+				
+				if (rowsToSave == null) {
 					rowsToSave = new LinkedHashMap<String, Map<String, String>>();
+					cfsToSave.put(cc.getColumnFamily(), rowsToSave);
+				}
 				
 				Map<String, String> cols = rowsToSave.get(idValue);
 				
@@ -735,31 +725,37 @@ public class SessionImpl implements Session, ApolloConstants {
 					cols.put(column, value.toString());
 			}
 			
-			if (rowsToSave != null) {
-				for (String rowKey : rowsToSave.keySet()) {
-					if (logger.isDebugEnabled())
-						logger.debug("Saving rowKey: " + rowKey);
+			if (cfsToSave != null) {
+				for (String columnFamily : cfsToSave.keySet()) {
+					CassandraColumnFamilyWrapper _cf = factory.getCassandraColumnFamilyWrapper(columnFamily);
 					
-					Map<String, String> cols = rowsToSave.get(rowKey);
-					
-					if (rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX) 
-							|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX))
-						cf.deleteRow(rowKey);
-					
-					for (String col : cols.keySet()) {
-						cf.insertColumn(rowKey, col, cols.get(col));
-					}
+					if (rowsToSave != null) {
+						for (String rowKey : rowsToSave.keySet()) {
+							if (logger.isDebugEnabled())
+								logger.debug("Saving rowKey: " + rowKey);
+							
+							Map<String, String> cols = rowsToSave.get(rowKey);
+							
+							if (rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX) 
+									|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX))
+								_cf.deleteRow(rowKey);
+							
+							for (String col : cols.keySet()) {
+								_cf.insertColumn(rowKey, col, cols.get(col));
+							}
 
-					String _rstat = cf.getColumnValue(idValue, SYS_COL_RSTAT);
-					
-					int rstat = 0;
-					
-					try {
-						rstat = Integer.parseInt(_rstat);
-					} catch (Exception e) {
+							String _rstat = _cf.getColumnValue(idValue, SYS_COL_RSTAT);
+							
+							int rstat = 0;
+							
+							try {
+								rstat = Integer.parseInt(_rstat);
+							} catch (Exception e) {
+							}
+							
+							_cf.insertColumn(idValue, SYS_COL_RSTAT, "" + rstat);
+						}
 					}
-					
-					cf.insertColumn(idValue, SYS_COL_RSTAT, "" + rstat);
 				}
 			}
 			

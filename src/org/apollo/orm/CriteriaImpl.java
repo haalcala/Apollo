@@ -51,6 +51,9 @@ public class CriteriaImpl<T> implements Criteria<T> {
 
 				if (keys != null && keys.size() > 0) {
 					for (String key : keys) {
+						if (key.startsWith(SYS_APOLLO_SYMBOL_PREFIX))
+							continue;
+						
 						T t = session.find(clazz, key);
 
 						if (t != null)

@@ -137,11 +137,19 @@ public interface ApolloConstants {
 		}
 		
 		public static String getMapKey(String rowKey, String prop) {
-			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX + "[" + rowKey + "|" + prop + "]";
+			return getMapKey(rowKey, prop, null);
 		}
 
+		public static String getMapKey(String rowKey, String prop, String child_table_key_suffix) {
+			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
+		}
+		
 		public static String getSetKey(String idValue, String prop) {
-			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX + "[" + idValue + "|"+prop+"]";
+			return getSetKey(idValue, prop, null);
+		}
+
+		public static String getSetKey(String idValue, String prop, String child_table_key_suffix) {
+			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX + "[" + idValue + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
 		}
 	}
 }

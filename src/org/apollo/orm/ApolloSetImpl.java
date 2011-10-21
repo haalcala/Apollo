@@ -46,6 +46,9 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		if (classConfig != null)
 			parameter_type = classConfig.getMethodParameterizedType(prop);
 		
+		if (parameter_type == null)
+			parameter_type = String.class;
+		
 		isNative = Util.isNativelySupported(parameter_type);
 		
 		if (logger.isDebugEnabled())
@@ -83,6 +86,8 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 			Iterator<String> it = Util.getApolloColumnIterator(cf, rowKey);
 			
 			String currentKey;
+			
+			boolean consumed;
 
 			public boolean hasNext() {
 				return it.hasNext();
