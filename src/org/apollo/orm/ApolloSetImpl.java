@@ -52,14 +52,21 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		isNative = Util.isNativelySupported(parameter_type);
 		
 		if (logger.isDebugEnabled())
-			logger.debug("ApolloSetImpl:: rowKey: " + rowKey + " startCol: " + startCol + " endCol: " + endCol + " maxCols: " + maxCols + " prop: " + prop);
+			logger.debug("ApolloSetImpl:: rowKey: " + rowKey + " startCol: " + startCol + " endCol: " + endCol 
+						+ " maxCols: " + maxCols + " prop: " + prop + " cf: " + cf + (cf != null ? " " + cf.getColumnFamilyName() : ""));
 	}
 
 	public int size() {
+		if (logger.isDebugEnabled())
+			logger.debug("size called");
+		
 		return -1;
 	}
 
 	public boolean isEmpty() {
+		if (logger.isDebugEnabled())
+			logger.debug("isEmpty called");
+		
 		return false;
 	}
 
@@ -82,6 +89,9 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 	}
 
 	public Iterator<T> iterator() {
+		if (logger.isDebugEnabled())
+			logger.debug("iterator called");
+		
 		return new Iterator<T>() {
 			Iterator<String> it = Util.getApolloColumnIterator(cf, rowKey);
 			
@@ -103,16 +113,33 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 						logger.debug("prop: " + prop + " c: " + parameter_type + " Util.isNativelySupported(c): " 
 									+ Util.isNativelySupported(parameter_type) + " currentKey: " + currentKey);
 					
-					String val = cf.getColumnValue(rowKey, currentKey);
+					//String val = cf.getColumnValue(rowKey, currentKey);
 					
 					if (logger.isDebugEnabled())
-						logger.debug("val: " + val);
+						logger.debug("val: " + currentKey);
 					
 					if (isNative) {
-						ret = (T) val;
+						if (parameter_type == Integer.TYPE) {
+							ret = (T) new Integer(currentKey);
+						}
+						else if (parameter_type == Long.TYPE) {
+							ret = (T) new Long(currentKey);
+						}
+						else if (parameter_type == Double.TYPE) {
+							ret = (T) new Double(currentKey);
+						}
+						else if (parameter_type == Float.TYPE) {
+							ret = (T) new Float(currentKey);
+						}
+						else if (parameter_type == Byte.TYPE) {
+							ret = (T) new Byte(currentKey);
+						}
+						else if (parameter_type == String.class) {
+							ret = (T) currentKey;
+						}
 					}
 					else if (parameter_type == Timestamp.class) {
-						ret = (T) Util.getTimestamp(val);
+						ret = (T) Util.getTimestamp(currentKey);
 					}
 					else {
 						String idValue = cf.getColumnValue(rowKey, currentKey);
@@ -140,12 +167,16 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 	}
 
 	public Object[] toArray() {
-		// TODO Auto-generated method stub
+		if (logger.isDebugEnabled())
+			logger.debug("toArray called");
+		
 		return null;
 	}
 
 	public <T> T[] toArray(T[] a) {
-		// TODO Auto-generated method stub
+		if (logger.isDebugEnabled())
+			logger.debug("toArray(T{} a) called");
+		
 		return null;
 	}
 
@@ -172,7 +203,7 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 			}
 			
 			if (val != null)
-				cf.insertColumn(rowKey, TimeUUIDUtils.getUniqueTimeUUIDinMillis().toString(), val);
+				cf.insertColumn(rowKey, val, "");
 			
 			return false;
 		} catch (Exception e1) {
@@ -189,38 +220,37 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 		checkValidClass();
 		
 		if (isNative) {
-			Iterator<String> it = Util.getApolloColumnIterator(cf, rowKey);
-			
-			for (; it.hasNext(); ) {
-				String key = it.next();
-				
-				String val = cf.getColumnValue(rowKey, key);
-				
-				if (val != null && val.equals(o)) {
-					cf.deleteColumn(rowKey, key);
-					break;
-				}
-			}
+			cf.deleteColumn(rowKey, o.toString());
 		}
 		
 		return true;
 	}
 
 	public boolean containsAll(Collection<?> c) {
-		// TODO Auto-generated method stub
+		if (logger.isDebugEnabled())
+			logger.debug("containsAll called");
+		
 		return false;
 	}
 
 	public boolean addAll(Collection<? extends T> c) {
-		// TODO Auto-generated method stub
+		if (logger.isDebugEnabled())
+			logger.debug("addAll called");
+		
 		return false;
 	}
 
 	public boolean retainAll(Collection<?> c) {
+		if (logger.isDebugEnabled())
+			logger.debug("retainAll called");
+		
 		return false;
 	}
 
 	public boolean removeAll(Collection<?> c) {
+		if (logger.isDebugEnabled())
+			logger.debug("removeAll called");
+		
 		
 		for (Object object : c) {
 			if (object.getClass() != parameter_type)

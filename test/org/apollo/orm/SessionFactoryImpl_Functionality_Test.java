@@ -491,7 +491,125 @@ public class SessionFactoryImpl_Functionality_Test {
 	}
 	
 	@Test
-	public void testSetProprety() throws Exception {
+	public void testSetProprety_Simple() throws Exception {
+		path_bean_xml = "MyBean_with_native_set_prop.hbm.xml";
+		
+		configure(true);
+		
+		MyBean bean = new MyBean();
+		
+		bean.setSetStringProp = new HashSet<String>();
+		
+		final int record_count = 3;
+		
+		List<String> data = getRandomDataAsList(record_count);
+		
+		for (String dat : data) {
+			bean.setSetStringProp.add(dat);
+		}
+		
+		session.save(bean);
+		
+		assertNotNull(bean.getId());
+		assertNotNull(bean.id);
+		
+		String idValue = bean.id;
+		
+		logger.info("### QUERYING ID: " + idValue + " ... ");
+		
+		MyBean bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		
+		assertEquals(idValue, bean2.id);
+		assertEquals(idValue, bean2.getId());
+		
+		assertNotNull(bean2.setSetStringProp);
+		
+		Iterator<String> it = bean2.setSetStringProp.iterator();
+		
+		assertNotNull(it);
+		
+		List<String> data2 = new ArrayList<String>(data);
+		
+		logger.info("### LISTING ELEMENTS FOR ID: " + idValue + " ... ");
+		
+		int c = 0;
+		
+		for (; it.hasNext(); ) {
+			String dat = it.next();
+			
+			logger.debug("### dat: " + dat + " " + c++);
+			
+			assertNotNull(dat);
+			
+			assertTrue(data2.contains(dat));
+			
+			data2.remove(dat);
+		}
+		
+		assertEquals(0, data2.size());
+		
+		assertEquals(record_count, c);
+		
+		for (String key : data) {
+			bean2.setSetStringProp.remove(key);
+		}
+		
+		bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		
+		assertEquals(idValue, bean2.id);
+		assertEquals(idValue, bean2.getId());
+		
+		assertNotNull(bean2.setSetStringProp);
+		
+		it = bean2.setSetStringProp.iterator();
+		
+		c = 0;
+		
+		for (; it.hasNext(); ) {
+			c++;
+		}
+		
+		assertEquals(0, c);
+		
+		for (String key : data) {
+			bean2.setSetStringProp.add(key);
+		}
+		
+		data2 = new ArrayList<String>(data);
+		
+		logger.info("### LISTING ELEMENTS FOR ID: " + idValue + " ... ");
+		
+		it = bean2.setSetStringProp.iterator();
+		
+		c = 0;
+		
+		for (; it.hasNext(); ) {
+			String dat = it.next();
+			
+			logger.debug("### dat: " + dat + " " + c++);
+			
+			assertNotNull(dat);
+			
+			assertTrue(data2.contains(dat));
+			
+			data2.remove(dat);
+		}
+		
+		assertEquals(0, data2.size());
+		
+		assertEquals(record_count, c);
+	}
+
+	@Test
+	public void testSetProprety_WithPaging() throws Exception {
 		path_bean_xml = "MyBean_with_native_set_prop.hbm.xml";
 		
 		configure(true);
@@ -607,7 +725,7 @@ public class SessionFactoryImpl_Functionality_Test {
 		
 		assertEquals(record_count, c);
 	}
-
+	
 	private List<String> getRandomDataAsList(int record_count) {
 		List<String> dat = new ArrayList<String>();
 		

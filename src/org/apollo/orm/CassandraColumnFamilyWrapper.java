@@ -7,7 +7,6 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -95,8 +94,10 @@ public class CassandraColumnFamilyWrapper {
 	}
 
 	public void insertColumn(String key, String columnName, String value) {
+		/*
 		if (logger.isDebugEnabled())
 			logger.debug(LOG_PREFIX + "Inserting key: '" + key + "' col: '" + columnName + "' val: '" + value + "'");
+		*/
 		
 		if (key == null || (key != null && "".equals(key)))
 			throw new RuntimeException("the parameter 'key' can neither be null or empty string");
@@ -144,7 +145,8 @@ public class CassandraColumnFamilyWrapper {
 			try {
 				keyspaceWrapper.getCluster().addColumnFamily(thriftCfDef);
 			} catch (HectorException e1) {
-				if (e1.getMessage().indexOf(STR_CLUSTER_SCHEMA_DOES_NOT_YET_AGREE) == -1)
+				if (e1.getMessage().indexOf(STR_CLUSTER_SCHEMA_DOES_NOT_YET_AGREE) == -1 
+						&& e1.getMessage().indexOf(STR_CF_ALREADY_DEFINED) == -1)
 					throw e1;
 				
 				if (logger.isDebugEnabled())
@@ -1217,6 +1219,9 @@ public class CassandraColumnFamilyWrapper {
 	}
 	
 	public void truncate() {
+		if (logger.isDebugEnabled())
+			logger.debug(LOG_PREFIX + "truncating column family '" + columnFamily + "'");
+		
 		keyspaceWrapper.truncateColumnFamily(columnFamily);
 	}
 	

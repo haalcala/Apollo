@@ -31,12 +31,16 @@ public interface ApolloConstants {
 	public static final String ATTR_NOT_NULL = "not-null";
 	public static final String ATTR_CASCADE = "cascade";
 	public static final String ATTR_CHILD_TABLE_KEY_SUFFIX = "child-table-key-suffix";
-
+	public static final String ATTR_CHILD_TABLE_KEY_PATTERN = "child-table-key-pattern";
 	
+	public static final String ATTR_KEY_TYPE = "key-type";
+	public static final String ATTR_VALUE_TYPE = "value-type";
+
 	public static final String STR_NATIVE = "native";
 	public static final String STR_NULL = "null";
 
 	public static final String STR_CLUSTER_SCHEMA_DOES_NOT_YET_AGREE = "Cluster schema does not yet agree";
+	public static final String STR_CF_ALREADY_DEFINED = "CF is already defined in that keyspace.";
 
 	public static final String METHOD_PREFIX_SET = "set";
 	public static final String METHOD_PREFIX_GET = "get";

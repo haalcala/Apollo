@@ -98,6 +98,9 @@ public class SessionImpl implements Session, ApolloConstants {
 		setObjectToCache(ret, idValue);
 		
 		for (String prop : classConfig.getMethods()) {
+			if (logger.isDebugEnabled())
+				logger.debug("######## Processing property: " + prop + " with id: " + idValue);
+			
 			ret = doPropertyInjection(idValue, cols, classConfig, ret, prop, false);
 			
 			if (ret == null) {
@@ -211,18 +214,88 @@ public class SessionImpl implements Session, ApolloConstants {
 	}
 
 	private void commenceNativeMapPropertyInjection(Object ret, Map<String, String> cols, String prop, ClassConfig classConfig) throws Exception {
-		Map map = (Map) classConfig.getPropertyMethodValue(ret, prop);
+		Map<Object, Object> map = (Map<Object, Object>) classConfig.getPropertyMethodValue(ret, prop);
+		
+		String _key_type = classConfig.getMethodConfig(prop).get(ATTR_KEY_TYPE);
+		String _value_type = classConfig.getMethodConfig(prop).get(ATTR_VALUE_TYPE);
+		
+		Class<?> key_type = _key_type != null ? Class.forName(_key_type) : String.class;
+		Class<?> value_type = _value_type != null ? Class.forName(_value_type) : String.class;
 		
 		for (String col : cols.keySet()) {
-			if (col.startsWith(prop + "-")) {
-				String key = col.substring(col.indexOf('-') + 1);
-				String val = cols.get(col);
-				
-				if (map == null) 
-					map = new LinkedHashMap<String, String>();
-				
-				map.put(key, val);
+			String _val = cols.get(col);
+			
+			Object key = null;
+			Object value = null;
+			
+			if (col.startsWith("__") && col.endsWith("__"))
+				continue;
+			
+			if (map == null)
+				map = new LinkedHashMap<Object, Object>();
+			
+			if (key_type == Integer.TYPE) {
+				key = Integer.parseInt((String) col);
 			}
+			else if (key_type == Long.TYPE) {
+				key = Long.parseLong((String) col);
+			}
+			else if (key_type == Double.TYPE) {
+				key = Double.parseDouble((String) col);
+			}
+			else if (key_type == Float.TYPE) {
+				key = Float.parseFloat((String) col);
+			}
+			else if (key_type == Boolean.TYPE) {
+				key = Boolean.parseBoolean((String) col);
+			}
+			else if (key_type == Short.TYPE) {
+				key = Short.parseShort((String) col);
+			}
+			else if (key_type == Byte.TYPE) {
+				key = Byte.parseByte((String) col);
+			}
+			else if (key_type == String.class) {
+				key = col;
+			}
+			else if (key_type == Timestamp.class) {
+				key = Util.getTimestamp(col);
+			}
+			
+
+			if (value_type == Integer.TYPE) {
+				value = Integer.parseInt((String) _val);
+			}
+			else if (value_type == Long.TYPE) {
+				value = Long.parseLong((String) _val);
+			}
+			else if (value_type == Double.TYPE) {
+				value = Double.parseDouble((String) _val);
+			}
+			else if (value_type == Float.TYPE) {
+				value = Float.parseFloat((String) _val);
+			}
+			else if (value_type == Boolean.TYPE) {
+				value = Boolean.parseBoolean((String) _val);
+			}
+			else if (value_type == Short.TYPE) {
+				value = Short.parseShort((String) _val);
+			}
+			else if (value_type == Byte.TYPE) {
+				value = Byte.parseByte((String) _val);
+			}
+			else if (value_type == String.class) {
+				value = _val;
+			}
+			else if (value_type == Timestamp.class) {
+				value = Util.getTimestamp(_val);
+			}
+			
+			if (key == null || value == null)
+				throw new IllegalArgumentException("Either of the key '" + col + "' or value '" + _val + "'" +
+						" could not be converted to '" + key_type + "' or '" + value_type + "' respectively.");
+
+			map.put(key, value);
 		}
 		
 		if (map != null && map.size() > 0)
@@ -372,6 +445,9 @@ public class SessionImpl implements Session, ApolloConstants {
 	}
 	
 	public <T> T find(Class<T> clazz, Serializable id, Object inverse) throws ApolloException {
+		if (logger.isDebugEnabled())
+			logger.debug("********************* START:: trying to find class '" + clazz + "' with id '" + id + "'  *********************");
+		
 		ClassConfig cc = getClassConfigUsingClass(clazz);
 		
 		if (cc == null)
@@ -383,6 +459,10 @@ public class SessionImpl implements Session, ApolloConstants {
 			return getEntityUsingId(cf, id, cc, null);
 		} catch (Exception e) {
 			throw new ApolloException(e);
+		}
+		finally {
+			if (logger.isDebugEnabled())
+				logger.debug("********************* END::  trying to find class '" + clazz + "' with id '" + id + "'  *********************");
 		}
 	}
 
@@ -542,6 +622,11 @@ public class SessionImpl implements Session, ApolloConstants {
 				
 				boolean checkForNull = true;
 				
+				boolean not_null = Util.getBooleanValue(propConfig.get(ATTR_NOT_NULL), false);
+				
+				if (logger.isDebugEnabled())
+					logger.debug("########### Processing property: " + prop + " column: " + column + " type: " + returnType);
+				
 				if (returnType == Integer.TYPE
 						|| returnType == Long.TYPE
 						|| returnType == Double.TYPE
@@ -567,9 +652,20 @@ public class SessionImpl implements Session, ApolloConstants {
 					 */
 					String child_table = propConfig.get(ATTR_TABLE);
 					
-					value = Util.getMapKey(idValue, prop);
+					child_table = child_table != null ? child_table : cc.getColumnFamily();
 					
 					Object method_value = cc.getPropertyMethodValue(object, prop);
+					
+					String child_table_key_pattern = propConfig.get(ATTR_CHILD_TABLE_KEY_PATTERN);
+					String child_table_key_suffix = propConfig.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
+					
+					String mapKey = Util.getMapKey(idValue, prop);
+					
+					if (child_table_key_pattern != null) {
+						mapKey = SYS_APOLLO_SYMBOL_PREFIX + child_table_key_pattern.replace("${key}", idValue).replace("${suffix}", child_table_key_suffix);
+					}
+
+					value = method_value != null ? Util.getMapKey(idValue, prop) : null;
 					
 					if (!(method_value instanceof ApolloMapImpl<?>)) {
 						Map<String, ?> map = (Map<String, String>) cc.getPropertyMethodValue(object, prop);
@@ -578,8 +674,6 @@ public class SessionImpl implements Session, ApolloConstants {
 
 						if (map != null && map.size() > 0) {
 							for (String key : map.keySet()) {
-								String mapKey = Util.getMapKey(idValue, prop);
-
 								if (rowsToSave == null) 
 									rowsToSave = new LinkedHashMap<String, Map<String, String>>();
 
@@ -598,15 +692,15 @@ public class SessionImpl implements Session, ApolloConstants {
 
 						if (method_value == null) {
 							if (cc.isMapOfMaps(prop))
-								map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, null, true, null);
+								map = new ApolloMapImpl<Map<String, String>>(factory, mapKey, child_table_cf, prop, null, true, null);
 							else
-								map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, null, false, null);
+								map = new ApolloMapImpl<String>(factory, mapKey, child_table_cf, prop, null, false, null);
 						}
 						else {
 							if (cc.isMapOfMaps(prop))
-								map = new ApolloMapImpl<Map<String, String>>(factory, idValue, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true, null);
+								map = new ApolloMapImpl<Map<String, String>>(factory, mapKey, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true, null);
 							else
-								map = new ApolloMapImpl<String>(factory, idValue, child_table_cf, prop, (Map<String, String>) method_value, false, null);
+								map = new ApolloMapImpl<String>(factory, mapKey, child_table_cf, prop, (Map<String, String>) method_value, false, null);
 						}
 
 						cc.setPropertyMethodValue(object, prop, map);
@@ -621,52 +715,67 @@ public class SessionImpl implements Session, ApolloConstants {
 				else if (returnType == Set.class) {
 					Set<?> set = (Set<?>) cc.getPropertyMethodValue(object, prop);
 					
-					Class<?> generic_type = cc.getMethodParameterizedType(prop);
-					
-					boolean isNative = Util.isNativelySupported(generic_type);
-					
-					Map<String, String> methodConfig = cc.getMethodConfig(prop);
-					
-					String _class = methodConfig.get(ATTR_CLASS);
+					if (set instanceof ApolloSetImpl<?>) {
+						ApolloSetImpl<?> new_name = (ApolloSetImpl<?>) set;
+					}
+					else {
+						Class<?> generic_type = cc.getMethodParameterizedType(prop);
+						
+						boolean isNative = Util.isNativelySupported(generic_type); 
+						
+						String _class = propConfig.get(ATTR_CLASS);
 
-					Class<?> clazz = isNative ? generic_type : Class.forName(_class);
-					
-					ClassConfig cc2 = isNative ? null : classToClassConfig.get(clazz);
-					
-					String child_table_key_suffix = methodConfig.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
-					
-					String child_cf_rowKey = Util.getSetKey(idValue, prop, child_table_key_suffix);
-					
-					cf.insertColumn(idValue, column, child_cf_rowKey);
-					
-					value = Util.getSetKey(idValue, prop);
-					
-					String table = methodConfig.get(ATTR_TABLE);
-					
-					if (set != null) {
-						for (Object object2 : set) {
-							Object setClass_idValue = cc2 != null ? cc2.getIdValue(object2) : object2.toString();
-							
-							if (setClass_idValue != null) {
-								if (cfsToSave == null)
-									cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
+						Class<?> clazz = isNative ? generic_type : Class.forName(_class);
+						
+						ClassConfig cc2 = isNative ? null : classToClassConfig.get(clazz);
+						
+						String child_table_key_suffix = propConfig.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
+						
+						String child_cf_rowKey = Util.getSetKey(idValue, prop, child_table_key_suffix);
+						
+						cf.insertColumn(idValue, column, child_cf_rowKey);
+						
+						value = set != null && set.size() > 0 ? Util.getSetKey(idValue, prop) : null;
+						
+						String table = propConfig.get(ATTR_TABLE);
+						
+						table = table != null ? table : cc.getColumnFamily();
+						
+						if (logger.isDebugEnabled())
+							logger.debug("set: " + set);
+						
+						if (set != null) {
+							for (Object object2 : set) {
 								
-								rowsToSave = cfsToSave.get(table);
+								Object setClass_idValue = cc2 != null ? cc2.getIdValue(object2) : object2.toString();
 								
-								if (rowsToSave == null) {
-									rowsToSave = new LinkedHashMap<String, Map<String, String>>();
-									cfsToSave.put(table, rowsToSave);
+								if (logger.isDebugEnabled())
+									logger.debug("setClass_idValue: " + setClass_idValue);
+								
+								if (setClass_idValue != null) {
+									if (cfsToSave == null)
+										cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
+									
+									rowsToSave = cfsToSave.get(table);
+									
+									if (rowsToSave == null) {
+										rowsToSave = new LinkedHashMap<String, Map<String, String>>();
+										cfsToSave.put(table, rowsToSave);
+									}
+									
+									Map<String, String> cols = rowsToSave.get(child_cf_rowKey);
+									
+									if (cols == null) {
+										cols = new LinkedHashMap<String, String>();
+										rowsToSave.put(child_cf_rowKey, cols);
+									}
+									
+									if (setClass_idValue != null)
+										cols.put(setClass_idValue.toString(), "");
+									
+									if (logger.isDebugEnabled())
+										logger.debug("rowsToSave: " + rowsToSave);
 								}
-								
-								Map<String, String> cols = rowsToSave.get(child_cf_rowKey);
-								
-								if (cols == null) {
-									cols = new LinkedHashMap<String, String>();
-									rowsToSave.put(child_cf_rowKey, cols);
-								}
-								
-								if (setClass_idValue != null)
-									cols.put(TimeUUIDUtils.getUniqueTimeUUIDinMillis().toString(), setClass_idValue.toString());
 							}
 						}
 					}
@@ -700,9 +809,8 @@ public class SessionImpl implements Session, ApolloConstants {
 				if (logger.isDebugEnabled())
 					logger.debug("checkForNull: " + checkForNull + " value: " + value + " prop: " + prop + " propConfig: " + propConfig);
 				
-				if (checkForNull && value == null && propConfig.get(ATTR_NOT_NULL) != null 
-						&& propConfig.get(ATTR_NOT_NULL).equals("true"))
-					throw new IllegalArgumentException("null parameter detected for property '" + prop + "'");
+				if (checkForNull && value == null && not_null)
+					throw new IllegalArgumentException("null parameter (or zero-sized collection) detected for property '" + prop + "'");
 				
 				if (cfsToSave == null)
 					cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
@@ -724,6 +832,9 @@ public class SessionImpl implements Session, ApolloConstants {
 				if (value != null)
 					cols.put(column, value.toString());
 			}
+			
+			if (logger.isDebugEnabled())
+				logger.debug("*********************  All the requirements to save records seem all pretty ok  *********************");
 			
 			if (cfsToSave != null) {
 				for (String columnFamily : cfsToSave.keySet()) {
