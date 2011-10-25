@@ -53,6 +53,9 @@ public interface ApolloConstants {
 	public static final String SYS_STR_MAP_KEY_PREFIX = "map-key-prefix";
 	public static final String SYS_STR_SET_KEY_INDEX = "set-key-index";
 	
+	public static final String SYS_STR_KEY_SYMBOL = "${key}";
+	public static final String SYS_STR_SUFFIX_SYMBOL = "${suffix}";
+	
 	public static final String SYSTEM_DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
 
 
@@ -140,11 +143,16 @@ public interface ApolloConstants {
 			return sdf.format(timestamp);
 		}
 		
+		/*
 		public static String getMapKey(String rowKey, String prop) {
-			return getMapKey(rowKey, prop, null);
+			return getMapKey(rowKey, prop, null, null);
 		}
 
 		public static String getMapKey(String rowKey, String prop, String child_table_key_suffix) {
+			return getMapKey(rowKey, prop, child_table_key_suffix, null);
+		}
+
+		public static String getMapKey(String rowKey, String prop, String child_table_key_suffix, String key_pattern) {
 			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
 		}
 		
@@ -155,5 +163,6 @@ public interface ApolloConstants {
 		public static String getSetKey(String idValue, String prop, String child_table_key_suffix) {
 			return SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX + "[" + idValue + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
 		}
+		*/
 	}
 }

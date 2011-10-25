@@ -8,6 +8,6 @@
             <generator class="native"/>
         </id>
 
-		<property name="mapProp" lazy-loaded="true" />
+		<property name="mapProp" />
    </class>
 </hibernate-mapping>

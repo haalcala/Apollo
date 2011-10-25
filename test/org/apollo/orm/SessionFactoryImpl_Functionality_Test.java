@@ -296,6 +296,51 @@ public class SessionFactoryImpl_Functionality_Test {
 	}
 	
 	@Test
+	public void testMapProp_LazyLoaded() throws Exception {
+		path_bean_xml = "MyBean_with_native_map_prop_lazy_loaded.hbm.xml";
+		
+		configure(true);
+		
+		MyBean bean = new MyBean();
+		
+		bean.mapProp = new HashMap<String, String>();
+		
+		String[] keys = {"a", "b", "c", "1", "2", "3"};
+		String[] vals = {"1", "2", "3", "a", "b", "c"};
+		
+		for (int i = 0; i < vals.length; i++) {
+			bean.mapProp.put(keys[i], vals[i]);
+		}
+		
+		session.save(bean);
+		
+		assertNotNull(bean.getId());
+		assertNotNull(bean.id);
+		
+		for (int i = 0; i < vals.length; i++) {
+			assertEquals(vals[i], bean.mapProp.get(keys[i]));
+		}
+		
+		configure();
+		
+		String idValue = bean.id;
+		
+		MyBean bean2 = session.find(MyBean.class, idValue);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2);
+		assertNotNull(bean2.mapProp);
+		
+		assertEquals(idValue, bean2.id);
+		assertEquals(idValue, bean2.getId());
+		
+		for (int i = 0; i < vals.length; i++) {
+			assertEquals(vals[i], bean2.mapProp.get(keys[i]));
+		}
+	}
+	
+	@Test
 	public void testIntPropertiesWithColumn() throws Exception {
 		path_bean_xml = "org/apollo/orm/beans/MyBean_with_one_int_prop_with_column.hbm.xml";
 		

@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,9 @@ public class SessionImpl implements Session, ApolloConstants {
 	}
 
 	public <T> T get(Class<T> clazz, Serializable id) throws ApolloException {
+		if (clazz == null || id == null)
+			throw new IllegalArgumentException("Neither class '" + clazz + "' nor id '" + id + "' cannot be null");
+		
 		ClassConfig cc = getClassConfigUsingClass(clazz);
 		
 		CassandraColumnFamilyWrapper cf = getColumnFamilyUsingClassConfig(cc);
@@ -129,9 +133,50 @@ public class SessionImpl implements Session, ApolloConstants {
 			commenceSetPropertyInjection(ret, prop, classConfig);
 		}
 		else if (type == Map.class) {
-			String table = method_config.get(ATTR_TABLE);
+			String child_table = method_config.get(ATTR_TABLE);
 			//String _lazy_loaded = method_config.get(ATTR_LAZY_LOADED);
 			
+			child_table = child_table == null ? classConfig.getColumnFamily() : child_table;
+			
+			boolean lazy_loaded = classConfig.isLazyLoaded(prop);
+			
+			boolean mapOfMaps = classConfig.isMapOfMaps(prop);
+
+			String columnIdValue = cols.get(classConfig.getMethodColumn(prop, true));
+
+			columnIdValue = columnIdValue == null ? classConfig.getMapKey(prop, idValue) : columnIdValue;
+
+			CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(child_table);
+
+			Map map = null;
+
+			if (lazy_loaded) {
+				if (mapOfMaps) {
+					map = new ApolloMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
+				}
+				else {
+					map = new ApolloMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
+				}
+			}
+			else {
+				map = new LinkedHashMap<Object, Object>();
+
+				Iterator<String> it = new ApolloKeyIteratorImpl(child_table_cf, columnIdValue, 1, "", "", 0, MAX_COLUMN_PER_PAGE, false);
+
+				while (it.hasNext()) {
+					String key = it.next();
+
+					if (!key.startsWith("__") && !key.endsWith("__")) {
+						String val = child_table_cf.getColumnValue(columnIdValue, key);
+
+						map.put(key, val);
+					}
+				}
+			}
+
+			classConfig.setPropertyMethodValue(ret, prop, map);
+			
+			/*
 			if (table == null) {
 				// commenceNativeMapPropertyInjection(ret, cols, prop, classConfig);
 				CassandraColumnFamilyWrapper cf = factory.getCassandraColumnFamilyWrapper(classConfig.cfName);
@@ -654,28 +699,26 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					child_table = child_table != null ? child_table : cc.getColumnFamily();
 					
-					Object method_value = cc.getPropertyMethodValue(object, prop);
+					Map<?, ?> map = (Map<?, ?>) cc.getPropertyMethodValue(object, prop);
 					
-					String child_table_key_pattern = propConfig.get(ATTR_CHILD_TABLE_KEY_PATTERN);
-					String child_table_key_suffix = propConfig.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
+					String mapKey = cc.getMapKey(prop, idValue);
 					
-					String mapKey = Util.getMapKey(idValue, prop);
+					value = map != null ? mapKey : null;
 					
-					if (child_table_key_pattern != null) {
-						mapKey = SYS_APOLLO_SYMBOL_PREFIX + child_table_key_pattern.replace("${key}", idValue).replace("${suffix}", child_table_key_suffix);
-					}
-
-					value = method_value != null ? Util.getMapKey(idValue, prop) : null;
-					
-					if (!(method_value instanceof ApolloMapImpl<?>)) {
-						Map<String, ?> map = (Map<String, String>) cc.getPropertyMethodValue(object, prop);
-
+					if (!(map instanceof ApolloMapImpl<?>)) {
 						if (logger.isDebugEnabled()) logger.debug("map : " + map);
 
 						if (map != null && map.size() > 0) {
-							for (String key : map.keySet()) {
-								if (rowsToSave == null) 
+							if (cfsToSave == null)
+								cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
+							
+							rowsToSave = cfsToSave.get(child_table);
+							
+							for (Object key : map.keySet()) {
+								if (rowsToSave == null) {
 									rowsToSave = new LinkedHashMap<String, Map<String, String>>();
+									cfsToSave.put(child_table, rowsToSave);
+								}
 
 								Map<String, String> cols = rowsToSave.get(mapKey);
 
@@ -684,26 +727,28 @@ public class SessionImpl implements Session, ApolloConstants {
 									rowsToSave.put(mapKey, cols);
 								}
 
-								cols.put(key, (String) map.get(key));
+								cols.put((String) key, (String) map.get(key));
 							}
 						}
 
 						CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(child_table);
 
-						if (method_value == null) {
-							if (cc.isMapOfMaps(prop))
-								map = new ApolloMapImpl<Map<String, String>>(factory, mapKey, child_table_cf, prop, null, true, null);
-							else
-								map = new ApolloMapImpl<String>(factory, mapKey, child_table_cf, prop, null, false, null);
-						}
-						else {
-							if (cc.isMapOfMaps(prop))
-								map = new ApolloMapImpl<Map<String, String>>(factory, mapKey, child_table_cf, prop, (Map<String, Map<String, String>>) method_value, true, null);
-							else
-								map = new ApolloMapImpl<String>(factory, mapKey, child_table_cf, prop, (Map<String, String>) method_value, false, null);
-						}
+						if (cc.isLazyLoaded(prop)) {
+							if (map == null) {
+								if (cc.isMapOfMaps(prop))
+									map = new ApolloMapImpl<Map<String, String>>(factory, mapKey, child_table_cf, prop, null, true, null);
+								else
+									map = new ApolloMapImpl<String>(factory, mapKey, child_table_cf, prop, null, false, null);
+							}
+							else {
+								if (cc.isMapOfMaps(prop))
+									map = new ApolloMapImpl<Map<String, String>>(factory, mapKey, child_table_cf, prop, (Map<String, Map<String, String>>) map, true, null);
+								else
+									map = new ApolloMapImpl<String>(factory, mapKey, child_table_cf, prop, (Map<String, String>) map, false, null);
+							}
 
-						cc.setPropertyMethodValue(object, prop, map);
+							cc.setPropertyMethodValue(object, prop, map);
+						}
 					}
 				}
 				else if (returnType == List.class) {
@@ -729,13 +774,11 @@ public class SessionImpl implements Session, ApolloConstants {
 						
 						ClassConfig cc2 = isNative ? null : classToClassConfig.get(clazz);
 						
-						String child_table_key_suffix = propConfig.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
-						
-						String child_cf_rowKey = Util.getSetKey(idValue, prop, child_table_key_suffix);
+						String child_cf_rowKey = cc.getSetKey(prop, idValue);
 						
 						cf.insertColumn(idValue, column, child_cf_rowKey);
 						
-						value = set != null && set.size() > 0 ? Util.getSetKey(idValue, prop) : null;
+						value = set != null && set.size() > 0 ? child_cf_rowKey : null;
 						
 						String table = propConfig.get(ATTR_TABLE);
 						

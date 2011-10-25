@@ -228,6 +228,85 @@ class ClassConfig implements ApolloConstants {
 		
 		return column == null && proposeDefault ? prop : column;
 	}
+	
+	public Class<?> getKeyType(String prop) throws ClassNotFoundException {
+		Class type = getPropertyType(prop);
+		
+		if (type != Map.class && type != Set.class)
+			if (type == null)
+				throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+			else 
+				throw new IllegalArgumentException("Propperty '" + prop + "' is neither a Map or Set type");
+		
+		Map<String, String> method_config = methodConfig.get(prop);
+		
+		if (method_config == null)
+			throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+		
+		String _key_type = method_config.get(ATTR_KEY_TYPE);
+		
+		Class<?> ret = _key_type != null ? Class.forName(_key_type) : String.class;
+		
+		return ret;
+	}
+	
+	public String getMapKey(String prop, String rowKey) {
+		String ret = null;
+		
+		Map<String, String> method_config = methodConfig.get(prop);
+		
+		if (method_config == null)
+			throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+		
+		String child_table_key_suffix = method_config.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
+		
+		String child_table_key_pattern = method_config.get(ATTR_CHILD_TABLE_KEY_PATTERN);
+		
+		if (child_table_key_pattern != null)
+			ret = child_table_key_pattern.replace(SYS_STR_KEY_SYMBOL, rowKey).replace(SYS_STR_SUFFIX_SYMBOL, child_table_key_suffix);
+		else
+			ret = SYS_STR_MAP_KEY_PREFIX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
+		
+		ret = SYS_APOLLO_SYMBOL_PREFIX + ret;
+		
+		return ret;
+	}
+	
+	public String getSetKey(String prop, String rowKey) {
+		String ret = null;
+		
+		Map<String, String> method_config = methodConfig.get(prop);
+		
+		if (method_config == null)
+			throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+		
+		String child_table_key_suffix = method_config.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
+		
+		ret = SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
+		
+		return ret;
+	}
+	
+	public Class<?> getValueType(String prop) throws ClassNotFoundException {
+		Class<?> type = getPropertyType(prop);
+		
+		if (type != Map.class)
+			if (type == null)
+				throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+			else 
+				throw new IllegalArgumentException("Propperty '" + prop + "' is neither a Map type");
+		
+		Map<String, String> method_config = methodConfig.get(prop);
+		
+		if (method_config == null)
+			throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+		
+		String _value_type = method_config.get(ATTR_VALUE_TYPE);
+		
+		Class<?> ret = _value_type != null ? Class.forName(_value_type) : String.class;
+		
+		return ret;
+	}
 
 	public boolean isLazyLoaded(String prop) {
 		return Util.getBooleanValue(getMethodConfig(prop).get(ATTR_LAZY_LOADED), false);
