@@ -30,6 +30,7 @@ public interface ApolloConstants {
 	public static final String ATTR_UNSAVED_VALUE = "unsaved-value";
 	public static final String ATTR_NOT_NULL = "not-null";
 	public static final String ATTR_CASCADE = "cascade";
+	public static final String ATTR_CASCADE_DELETE = "cascade-delete";
 	public static final String ATTR_CHILD_TABLE_KEY_SUFFIX = "child-table-key-suffix";
 	public static final String ATTR_CHILD_TABLE_KEY_PATTERN = "child-table-key-pattern";
 	
@@ -92,6 +93,7 @@ public interface ApolloConstants {
 					|| c == Byte.TYPE
 					|| c == Float.TYPE
 					|| c == String.class
+					|| c == Timestamp.class
 					) {
 				return true;
 			}

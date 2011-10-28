@@ -134,7 +134,6 @@ public class SessionImpl implements Session, ApolloConstants {
 		}
 		else if (type == Map.class) {
 			String child_table = method_config.get(ATTR_TABLE);
-			//String _lazy_loaded = method_config.get(ATTR_LAZY_LOADED);
 			
 			child_table = child_table == null ? classConfig.getColumnFamily() : child_table;
 			
@@ -240,7 +239,10 @@ public class SessionImpl implements Session, ApolloConstants {
 			*/
 		}
 		else {
-			String val = cols.get(method_config.get(ATTR_COLUMN));
+			Object val = cols.get(method_config.get(ATTR_COLUMN));
+			
+			if (!Util.isNativelySupported(type))
+				val = find(type, val.toString());
 			
 			String not_null = method_config.get(ATTR_NOT_NULL);
 			
@@ -378,7 +380,7 @@ public class SessionImpl implements Session, ApolloConstants {
 			value = val;
 		}
 		else if (paramType == Timestamp.class) {
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
 			value = new Timestamp(sdf.parse((String) val).getTime());
 		}
@@ -404,7 +406,9 @@ public class SessionImpl implements Session, ApolloConstants {
 			if (cc == null)
 				throw new IllegalArgumentException("No mapping defined for '" + paramType + "'");
 			
-			value = getObjectFromCache(paramType, (String) val);
+			String idValue = (String) cc.getIdValue(val);
+			
+			value = getObjectFromCache(paramType, idValue);
 			
 			if (value == null) {
 				value = get(paramType, (Serializable) val);
@@ -412,6 +416,9 @@ public class SessionImpl implements Session, ApolloConstants {
 				setObjectToCache(value, (String) val);
 			}
 		}
+		
+		if (logger.isDebugEnabled())
+			logger.debug("Setting property '" + prop + "' value '" + value + "' to return object '" + ret + "'");
 
 		classConfig.setPropertyMethodValue(ret, prop, value);
 	}
@@ -621,6 +628,8 @@ public class SessionImpl implements Session, ApolloConstants {
 		if (logger.isDebugEnabled()) 
 			logger.debug("*********************   Saving class "+object.getClass()+" object " + object + " **************************");
 		
+		Map<String, List<String>> no_auto_delete_list = null;
+		
 		try {
 			ClassConfig cc = getClassConfig(object);
 			
@@ -705,6 +714,22 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					value = map != null ? mapKey : null;
 					
+					if (!Util.getBooleanValue(propConfig.get(ATTR_CASCADE_DELETE), true)) {
+						if (no_auto_delete_list == null)
+							no_auto_delete_list = new LinkedHashMap<String, List<String>>();
+						
+						List<String> _no_auto_delete_list = no_auto_delete_list.get(child_table);
+						
+						if (_no_auto_delete_list == null) {
+							_no_auto_delete_list = new ArrayList<String>();
+							
+							no_auto_delete_list.put(child_table, _no_auto_delete_list);
+						}
+						
+						if (!_no_auto_delete_list.contains(mapKey))
+							_no_auto_delete_list.add(mapKey);
+					}
+						
 					if (!(map instanceof ApolloMapImpl<?>)) {
 						if (logger.isDebugEnabled()) logger.debug("map : " + map);
 
@@ -795,6 +820,22 @@ public class SessionImpl implements Session, ApolloConstants {
 								if (logger.isDebugEnabled())
 									logger.debug("setClass_idValue: " + setClass_idValue);
 								
+								if (!Util.getBooleanValue(propConfig.get(ATTR_CASCADE_DELETE), true)) {
+									if (no_auto_delete_list == null)
+										no_auto_delete_list = new LinkedHashMap<String, List<String>>();
+									
+									List<String> _no_auto_delete_list = no_auto_delete_list.get(table);
+									
+									if (_no_auto_delete_list == null) {
+										_no_auto_delete_list = new ArrayList<String>();
+										
+										no_auto_delete_list.put(table, _no_auto_delete_list);
+									}
+									
+									if (!_no_auto_delete_list.contains(child_cf_rowKey))
+										_no_auto_delete_list.add(child_cf_rowKey);
+								}
+									
 								if (setClass_idValue != null) {
 									if (cfsToSave == null)
 										cfsToSave = new LinkedHashMap<String, Map<String,Map<String,String>>>();
@@ -885,14 +926,32 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					if (rowsToSave != null) {
 						for (String rowKey : rowsToSave.keySet()) {
+							String log_prefix = columnFamily + "[" + rowKey + "]";
+							
 							if (logger.isDebugEnabled())
 								logger.debug("Saving rowKey: " + rowKey);
 							
 							Map<String, String> cols = rowsToSave.get(rowKey);
 							
-							if (rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX) 
-									|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX))
+							boolean delete_collection_type = true;
+							
+							if (no_auto_delete_list != null) {
+								List<String> _no_auto_delete_list = no_auto_delete_list.get(columnFamily);
+								
+								if (logger.isDebugEnabled())
+									logger.debug(log_prefix + " _no_auto_delete_list: " + _no_auto_delete_list);
+								
+								if (_no_auto_delete_list != null)
+									delete_collection_type = !_no_auto_delete_list.contains(rowKey);
+							}
+							
+							if (delete_collection_type && 
+									(rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_MAP_KEY_PREFIX) 
+									|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX)))
 								_cf.deleteRow(rowKey);
+							else
+								if (logger.isDebugEnabled())
+									logger.debug(log_prefix + " Not auto-deleting collection type with id: " + rowKey);
 							
 							for (String col : cols.keySet()) {
 								_cf.insertColumn(rowKey, col, cols.get(col));
