@@ -35,7 +35,7 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 		this.mapOfMaps = mapOfMaps;
 		
 		if (logger.isDebugEnabled())
-			logger.debug("CassanateHashMap() rowKey: " + rowKey + " cf:" + cf + (cf != null ? " " + cf.getColumnFamilyName() : ""));
+			logger.debug("CassanateHashMap() rowKey: " + rowKey + " cf:" + cf + (cf != null ? " " + cf.getColumnFamilyName() : "") + " classConfig: " + classConfig);
 		
 		if (initialData != null && initialData.size() > 0) {
 			for (String key : initialData.keySet()) {

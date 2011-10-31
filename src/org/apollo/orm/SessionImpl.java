@@ -417,8 +417,8 @@ public class SessionImpl implements Session, ApolloConstants {
 			}
 		}
 		
-		if (logger.isDebugEnabled())
-			logger.debug("Setting property '" + prop + "' value '" + value + "' to return object '" + ret + "'");
+		//if (logger.isDebugEnabled())
+		//	logger.debug("Setting property '" + prop + "' value '" + value + "' to return object '" + ret + "'");
 
 		classConfig.setPropertyMethodValue(ret, prop, value);
 	}
