@@ -73,9 +73,9 @@ public class MyInterceptor implements MethodInterceptor {
 					CassandraColumnFamilyWrapper hashmap_cf = child_table_cf != null ? child_table_cf : cf;
 					
 					if (mapOfMaps)
-						map = new ApolloMapImpl<Map<String, String>>(factory, idValue, hashmap_cf, prop, (Map<String, Map<String, String>>) map, mapOfMaps, null);
+						map = new ApolloMapImpl<Map<String, String>>(factory, null, idValue, hashmap_cf, prop, (Map<String, Map<String, String>>) map, mapOfMaps, null);
 					else
-						map = new ApolloMapImpl<String>(factory, idValue, hashmap_cf, prop, (Map<String, String>) map, mapOfMaps, null);
+						map = new ApolloMapImpl<String>(factory, null, idValue, hashmap_cf, prop, (Map<String, String>) map, mapOfMaps, null);
 				}
 
 				objects[0] = map;
@@ -97,10 +97,10 @@ public class MyInterceptor implements MethodInterceptor {
 					Map<String, ?> map = null;
 					
 					if (mapOfMaps) {
-						map = new ApolloMapImpl<Map<String, String>>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
+						map = new ApolloMapImpl<Map<String, String>>(factory, null, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
 					}
 					else {
-						map = new ApolloMapImpl<String>(factory, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
+						map = new ApolloMapImpl<String>(factory, null, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
 					}
 
 					classConfig.setPropertyMethodValue(realObj, prop, map);

@@ -262,16 +262,11 @@ class ClassConfig implements ApolloConstants {
 		
 		String child_table_key_pattern = method_config.get(ATTR_CHILD_TABLE_KEY_PATTERN);
 		
-		if (child_table_key_pattern != null)
-			ret = child_table_key_pattern.replace(SYS_STR_KEY_SYMBOL, rowKey).replace(SYS_STR_SUFFIX_SYMBOL, child_table_key_suffix);
-		else
-			ret = SYS_STR_MAP_KEY_PREFIX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
-		
-		ret = SYS_APOLLO_SYMBOL_PREFIX + ret;
+		ret = Util.getMapKey(prop, rowKey, child_table_key_suffix, child_table_key_pattern);
 		
 		return ret;
 	}
-	
+
 	public String getSetKey(String prop, String rowKey) {
 		String ret = null;
 		
@@ -282,7 +277,22 @@ class ClassConfig implements ApolloConstants {
 		
 		String child_table_key_suffix = method_config.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
 		
-		ret = SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_SET_KEY_INDEX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
+		ret = SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_KEY_COLLECTION_INDEX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
+		
+		return ret;
+	}
+
+	public String getListKey(String prop, String rowKey) {
+		String ret = null;
+		
+		Map<String, String> method_config = methodConfig.get(prop);
+		
+		if (method_config == null)
+			throw new IllegalArgumentException("The property '" + prop + "' does not exist for this class '" + clazz + "'");
+		
+		String child_table_key_suffix = method_config.get(ATTR_CHILD_TABLE_KEY_SUFFIX);
+		
+		ret = SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_KEY_COLLECTION_INDEX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
 		
 		return ret;
 	}

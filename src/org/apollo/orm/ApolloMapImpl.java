@@ -25,14 +25,25 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 
 	private Session session;
 
+	private String child_table_key_pattern;
+
+	private String child_table_key_suffix;
+
+	private String topKey;
+
+	private String column;
+
 	@Autowired
-	public ApolloMapImpl(SessionFactory factory, String rowKey, CassandraColumnFamilyWrapper cf, 
-			String prop, Map<String, T> initialData, boolean mapOfMaps, ClassConfig classConfig) throws SecurityException, NoSuchMethodException {
+	public ApolloMapImpl(SessionFactory factory, String topKey, String rowKey, 
+			CassandraColumnFamilyWrapper cf, String prop, Map<String, T> initialData, boolean mapOfMaps, ClassConfig classConfig) throws SecurityException, NoSuchMethodException {
 		this.factory = factory;
 		this.cf = cf;
 		this.rowKey = rowKey;
 		this.prop = prop;
 		this.mapOfMaps = mapOfMaps;
+		this.topKey = topKey;
+		
+		this.column = classConfig != null ? classConfig.getMethodColumn(prop, true) : prop;
 		
 		if (logger.isDebugEnabled())
 			logger.debug("CassanateHashMap() rowKey: " + rowKey + " cf:" + cf + (cf != null ? " " + cf.getColumnFamilyName() : "") + " classConfig: " + classConfig);
@@ -103,16 +114,21 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 			}
 			else {
 				try {
-					mapKey = cf.getColumnValue(rowKey, classConfig.getMethodColumn(classConfig.getMapKey(prop, mapKey), true));
+					mapKey = cf.getColumnValue(rowKey, column);
+					
+					if (mapKey == null) { 
+						mapKey = Util.getMapKey(prop + "_Nested", topKey, child_table_key_suffix, child_table_key_pattern) + ":" + key;
+					}
+					
+					cf.insertColumn(rowKey, mapKey, "");
+					
+					cf.insertColumn(mapKey, (String) key, "");
 					
 					if (logger.isDebugEnabled())
 						logger.debug("mapKey: " + mapKey + " key: '" + key + "' rowKey: " + rowKey);
 					
-					if (mapKey == null) {
-						cf.insertColumn(rowKey, classConfig.getMapKey(prop, mapKey), key.toString());
-					}
 					
-					ret = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, null, false, null);
+					ret = (T) new ApolloMapImpl<String>(factory, topKey, mapKey, cf, prop, null, false, null);
 				}
 				catch (Exception e) {
 					throw new RuntimeException(e);
@@ -137,148 +153,6 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
-		
-		/*
-		return new Set<String>() {
-			
-			Map<String, String> cols;
-			
-			@Override
-			public <T> T[] toArray(T[] a) {
-				
-				
-				
-				return a;
-			}
-			
-			@Override
-			public Object[] toArray() {
-				// TODO Auto-generated method stub
-				return null;
-			}
-			
-			@Override
-			public int size() {
-				// TODO Auto-generated method stub
-				return 0;
-			}
-			
-			@Override
-			public boolean retainAll(Collection<?> c) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public boolean removeAll(Collection<?> c) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public boolean remove(Object o) {
-				if (o != null)
-					cf.deleteColumn(rowKey, o.toString());
-				
-				return o != null;
-			}
-			
-			@Override
-			public Iterator<String> iterator() {
-				return new Iterator<String>() {
-					
-					String curCol;
-					
-					Iterator<String> col_it;
-					
-					int coli;
-					
-					@Override
-					public void remove() {
-						if (curCol == null)
-							throw new NoSuchElementException();
-						
-						cf.deleteColumn(rowKey, curCol);
-					}
-					
-					@Override
-					public String next() {
-						if (col_it != null) { 
-							curCol = col_it.next();
-							coli++;
-							return curCol;
-						}
-						
-						throw new NoSuchElementException();
-					}
-					
-					void loadNewPage() {
-						if (coli == 0 || coli > ApolloConstants.MAX_COLUMN_PER_PAGE) {
-							Map<String, Map<String, String>> rows = cf.getColumnsAsMap(rowKey, "", curCol, "", ApolloConstants.MAX_COLUMN_PER_PAGE + 1, 1);
-							
-							if (rows != null && rows.size() > 0) {
-								cols = rows.get(rowKey);
-								
-								col_it = cols.keySet().iterator();
-								
-								coli = 0;
-							}
-						}
-					}
-					
-					@Override
-					public boolean hasNext() {
-						loadNewPage();
-						
-						if (col_it != null)
-							col_it.hasNext();
-						
-						return false;
-					}
-				};
-			}
-			
-			@Override
-			public boolean isEmpty() {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public boolean containsAll(Collection<?> c) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public boolean contains(Object o) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-			@Override
-			public void clear() {
-				
-			}
-			
-			@Override
-			public boolean addAll(Collection<? extends String> c) {
-				
-				for (String str : c) {
-					cf.insertColumn(rowKey, str, "");
-				}
-				
-				return true;
-			}
-			
-			@Override
-			public boolean add(String str) {
-				cf.insertColumn(rowKey, str, "");
-				
-				return true;
-			}
-		};
-		*/
 	}
 
 	public T put(String key, T value) {
@@ -294,7 +168,7 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 				String mapKey = classConfig.getMapKey(prop, rowKey);
 				
 				try {
-					cols = (T) new ApolloMapImpl<String>(factory, mapKey, cf, prop, (Map<String, String>) value, false, null);
+					cols = (T) new ApolloMapImpl<String>(factory, null, mapKey, cf, prop, (Map<String, String>) value, false, null);
 
 					value = cols;
 

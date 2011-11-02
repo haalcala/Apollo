@@ -51,8 +51,7 @@ public interface ApolloConstants {
 	
 	public static final String SYS_APOLLO_SYMBOL_PREFIX = "apollo://";
 	
-	public static final String SYS_STR_MAP_KEY_PREFIX = "map-key-prefix";
-	public static final String SYS_STR_SET_KEY_INDEX = "set-key-index";
+	public static final String SYS_STR_KEY_COLLECTION_INDEX = "collection-key-index";
 	
 	public static final String SYS_STR_KEY_SYMBOL = "${key}";
 	public static final String SYS_STR_SUFFIX_SYMBOL = "${suffix}";
@@ -94,11 +93,46 @@ public interface ApolloConstants {
 					|| c == Float.TYPE
 					|| c == String.class
 					|| c == Timestamp.class
+					|| c == Character.class
 					) {
 				return true;
 			}
 			
 			return false;
+		}
+		
+		public static Object getNativeValueFromString(Class<?> clazz, String str) throws ParseException {
+			Object ret = null;
+			
+			if (clazz == Integer.TYPE) {
+				ret = new Integer(str);
+			}
+			else if (clazz == Long.TYPE) {
+				ret = new Long(str);
+			}
+			else if (clazz == Boolean.TYPE) {
+				ret = new Boolean(str);
+			}
+			else if (clazz == Double.TYPE) {
+				ret = new Double(str);
+			}
+			else if (clazz == Float.TYPE) {
+				ret = new Float(str);
+			}
+			else if (clazz == Byte.TYPE) {
+				ret = new Byte(str);
+			}
+			else if (clazz == Character.class) {
+				ret = new Character(str.charAt(0));
+			}
+			else if (clazz == Timestamp.class) {
+				ret = getTimestamp(str);
+			}
+			else if (clazz == String.class) {
+				ret = str;
+			}
+			
+			return ret;
 		}
 
 		public static String getObjectValue(Object o, SessionImpl session) throws Exception {
@@ -143,6 +177,20 @@ public interface ApolloConstants {
 			SimpleDateFormat sdf = new SimpleDateFormat(SYSTEM_DATE_FORMAT);
 			
 			return sdf.format(timestamp);
+		}
+		
+		public static String getMapKey(String prop, String rowKey,
+				String child_table_key_suffix, String child_table_key_pattern) {
+			String ret;
+			
+			if (child_table_key_pattern != null)
+				ret = child_table_key_pattern.replace(SYS_STR_KEY_SYMBOL, rowKey).replace(SYS_STR_SUFFIX_SYMBOL, child_table_key_suffix);
+			else
+				ret = SYS_STR_KEY_COLLECTION_INDEX + "[" + rowKey + "|" + prop + (child_table_key_suffix != null ? "|" + child_table_key_suffix : "") + "]";
+			
+			ret = SYS_APOLLO_SYMBOL_PREFIX + ret;
+			
+			return ret;
 		}
 		
 		/*
