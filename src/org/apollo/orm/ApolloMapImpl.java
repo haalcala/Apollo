@@ -109,30 +109,29 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 		if (ret == null) {
 			String mapKey = rowKey;
 			
-			if (!mapOfMaps) {
-				ret = (T) cf.getColumnValue(rowKey, key.toString());
-			}
-			else {
+			if (mapOfMaps) {
 				try {
 					mapKey = cf.getColumnValue(rowKey, column);
 					
 					if (mapKey == null) { 
-						mapKey = Util.getMapKey(prop + "_Nested", topKey, child_table_key_suffix, child_table_key_pattern) + ":" + key;
+						mapKey = rowKey + ":" + key;
 					}
 					
-					cf.insertColumn(rowKey, mapKey, "");
+					//cf.insertColumn(rowKey, mapKey, "");
 					
-					cf.insertColumn(mapKey, (String) key, "");
+					cf.insertColumn(rowKey, (String) key, mapKey);
 					
 					if (logger.isDebugEnabled())
 						logger.debug("mapKey: " + mapKey + " key: '" + key + "' rowKey: " + rowKey);
-					
 					
 					ret = (T) new ApolloMapImpl<String>(factory, topKey, mapKey, cf, prop, null, false, null);
 				}
 				catch (Exception e) {
 					throw new RuntimeException(e);
 				}
+			}
+			else {
+				ret = (T) cf.getColumnValue(rowKey, key.toString());
 			}
 			
 			if (ret != null)

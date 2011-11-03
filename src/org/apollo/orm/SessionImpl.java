@@ -43,6 +43,10 @@ public class SessionImpl implements Session, ApolloConstants {
 		this.columnFamilyToClassConfig = columnFamilyToClassConfig;
 	}
 
+	public ClassConfig getClassConfig(Class<?> clazz) {
+		return getClassConfig(clazz, false);
+	}
+
 	public <T> T get(Class<T> clazz, Serializable id) throws ApolloException {
 		if (clazz == null || id == null)
 			throw new IllegalArgumentException("Neither class '" + clazz + "' nor id '" + id + "' cannot be null");
@@ -143,18 +147,21 @@ public class SessionImpl implements Session, ApolloConstants {
 
 			String columnIdValue = cols.get(classConfig.getMethodColumn(prop, true));
 
-			columnIdValue = columnIdValue == null ? classConfig.getMapKey(prop, idValue) : columnIdValue;
+			if (columnIdValue == null) classConfig.getMapKey(prop, idValue);
 
 			CassandraColumnFamilyWrapper child_table_cf = factory.getCassandraColumnFamilyWrapper(child_table);
+			
+			Class<?> key_type = classConfig.getKeyType(prop);
+			Class<?> value_type = classConfig.getValueType(prop);
 
 			Map map = null;
 
 			if (lazy_loaded) {
 				if (mapOfMaps) {
-					map = new ApolloMapImpl<Map<String, String>>(factory, idValue, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
+					map = new ApolloMapImpl<Map<Object, Object>>(factory, idValue, columnIdValue, child_table_cf, prop, null, mapOfMaps, classConfig);
 				}
 				else {
-					map = new ApolloMapImpl<String>(factory, idValue, columnIdValue, child_table_cf, prop, null, mapOfMaps, null);
+					map = new ApolloMapImpl<Object>(factory, idValue, columnIdValue, child_table_cf, prop, null, mapOfMaps, classConfig);
 				}
 			}
 			else {
@@ -168,7 +175,17 @@ public class SessionImpl implements Session, ApolloConstants {
 					if (!key.startsWith("__") && !key.endsWith("__")) {
 						String val = child_table_cf.getColumnValue(columnIdValue, key);
 
-						map.put(key, val);
+						if (mapOfMaps) {
+							Map<String, Map<String, String>> inside_map = child_table_cf.getColumnsAsMap(val, "", "", "", Integer.MAX_VALUE, 1);
+							
+							Map<String, String> this_cols = inside_map.get(val);
+							
+							if (this_cols != null)
+								map.put(key, this_cols);
+						}
+						else {
+							map.put(key, val);
+						}
 					}
 				}
 			}
@@ -747,16 +764,37 @@ public class SessionImpl implements Session, ApolloConstants {
 					
 					value = map != null ? mapKey : null;
 					
-					no_auto_delete_list = addToNoAutoDelete(no_auto_delete_list, propConfig, child_table, mapKey);
+					boolean in_no_auto_delete = addToNoAutoDelete(no_auto_delete_list, propConfig, child_table, mapKey);
 					
 					addToDataToSave(cc.cfName, cfsToSave, idValue, column, mapKey);
+					
+					boolean mapOfMaps = cc.isMapOfMaps(prop);
 						
 					if (!(map instanceof ApolloMapImpl<?>)) {
 						if (logger.isDebugEnabled()) logger.debug("map : " + map);
 
 						if (map != null && map.size() > 0) {
 							for (Object key : map.keySet()) {
-								addToDataToSave(child_table, cfsToSave, mapKey, (String) key, (String) map.get(key));
+								if (mapOfMaps) {
+									Map<String, String> inside_map = (Map<String, String>) map.get(key);
+									
+									if (inside_map != null) {
+										for (String inside_mapKey : inside_map.keySet()) {
+											String val = inside_map.get(inside_mapKey);
+											
+											String this_rowKey = cc.getMapKey(prop, idValue) + ":" + key.toString();
+											
+											if (in_no_auto_delete)
+												addToNoAutoDelete(no_auto_delete_list, propConfig, child_table, this_rowKey);
+											
+											addToDataToSave(child_table, cfsToSave, mapKey, key.toString(), this_rowKey);
+											addToDataToSave(child_table, cfsToSave, this_rowKey, inside_mapKey, val);
+										}
+									}
+								}
+								else {
+									addToDataToSave(child_table, cfsToSave, mapKey, (String) key, (String) map.get(key));
+								}
 							}
 						}
 
@@ -883,9 +921,7 @@ public class SessionImpl implements Session, ApolloConstants {
 								if (logger.isDebugEnabled())
 									logger.debug("setClass_idValue: " + setClass_idValue);
 								
-								no_auto_delete_list = addToNoAutoDelete(
-										no_auto_delete_list, propConfig, table,
-										child_cf_rowKey);
+								addToNoAutoDelete(no_auto_delete_list, propConfig, table, child_cf_rowKey);
 									
 								if (setClass_idValue != null) {
 									if (cfsToSave == null)
@@ -1035,9 +1071,10 @@ public class SessionImpl implements Session, ApolloConstants {
 		}
 	}
 
-	private Map<String, List<String>> addToNoAutoDelete(
+	private boolean addToNoAutoDelete(
 			Map<String, List<String>> no_auto_delete_list,
 			Map<String, String> propConfig, String column_family, String rowKey) {
+		
 		if (!Util.getBooleanValue(propConfig.get(ATTR_CASCADE_DELETE), true)) {
 			if (no_auto_delete_list == null)
 				no_auto_delete_list = new LinkedHashMap<String, List<String>>();
@@ -1050,10 +1087,14 @@ public class SessionImpl implements Session, ApolloConstants {
 				no_auto_delete_list.put(column_family, _no_auto_delete_list);
 			}
 			
-			if (!_no_auto_delete_list.contains(rowKey))
+			if (!_no_auto_delete_list.contains(rowKey)) {
 				_no_auto_delete_list.add(rowKey);
+				
+				return true;
+			}
 		}
-		return no_auto_delete_list;
+		
+		return false;
 	}
 
 	private void addToDataToSave(String cfName,

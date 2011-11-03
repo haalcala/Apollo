@@ -56,7 +56,7 @@ public class MyBean {
 	
 	public Map<String, String> mapWithTablenameAndLazyLoaded;
 
-	public Map<String, Map<String, String>> mapOfMaps;
+	public Map<String, Map<String, String>> mapOfMapsProp;
 	
 	public String stringPropUmapped;
 	
@@ -260,13 +260,13 @@ public class MyBean {
 	public void setMapWithTablenameAndLazyLoaded(Map<String, String> mapWithTablenameAndLazyLoaded) {
 		this.mapWithTablenameAndLazyLoaded = mapWithTablenameAndLazyLoaded;
 	}
-
-	public Map<String, Map<String, String>> getMapOfMaps() {
-		return mapOfMaps;
+	
+	public Map<String, Map<String, String>> getMapOfMapsProp() {
+		return mapOfMapsProp;
 	}
 
-	public void setMapOfMaps(Map<String, Map<String, String>> mapOfMaps) {
-		this.mapOfMaps = mapOfMaps;
+	public void setMapOfMapsProp(Map<String, Map<String, String>> mapOfMapsProp) {
+		this.mapOfMapsProp = mapOfMapsProp;
 	}
 
 	public String getStringPropWithColumn() {

@@ -33,4 +33,9 @@ public interface Session {
 	<T> List<Serializable> getKeyList(Class<T> clazz, String startKey) throws Exception;
 	
 	void close();
+	
+	/*
+	 * Apollo specific calls
+	 */
+	ClassConfig getClassConfig(Class<?> clazz);
 }

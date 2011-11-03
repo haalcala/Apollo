@@ -1,9 +1,6 @@
 package org.apollo.orm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.lang.reflect.Method;
 import java.sql.Timestamp;
@@ -11,7 +8,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
@@ -72,7 +71,7 @@ public class SessionFactoryImpl_Functionality_Test {
 		configure(false);
 	}
 	
-	void configure(boolean b) throws Exception {
+	void configure(boolean truncate) throws Exception {
 		if (session != null) {
 			session.close();
 			session = null;
@@ -94,7 +93,7 @@ public class SessionFactoryImpl_Functionality_Test {
 		
 		session = factory.getSession();
 		
-		if (b)
+		if (truncate)
 			session.truncate(MyBean.class);
 	}
 
@@ -486,6 +485,160 @@ public class SessionFactoryImpl_Functionality_Test {
 		
 		for (int i = 0; i < vals.length; i++) {
 			assertEquals(vals[i], bean2.mapProp.get(keys[i]));
+		}
+	}
+	
+	@Test
+	public void testMapOfMapsProperty() throws Exception {
+		testMapOfMapsProperty("MyBean_with_native_map_of_map_prop.hbm.xml", false);
+	}
+		
+	@Test
+	public void testMapOfMapsPropertyLazyLoaded() throws Exception {
+		testMapOfMapsProperty("MyBean_with_native_map_of_map_prop_lazy_loaded.hbm.xml", true);
+	}
+	
+	public void testMapOfMapsProperty(String path_bean_xml, boolean lazy_loaded) throws Exception {
+		this.path_bean_xml = path_bean_xml;
+		
+		String prop = "mapOfMapsProp";
+		
+		configure(true);
+		
+		ClassConfig cc = session.getClassConfig(MyBean.class);
+
+		assertTrue(cc.isMapOfMaps(prop));
+		
+		assertEquals(lazy_loaded, cc.isLazyLoaded(prop));
+		
+		MyBean bean = new MyBean();
+		
+		session.save(bean);
+		
+		assertNotNull(bean.id);
+		
+		if (lazy_loaded)
+			assertNotNull(bean.mapOfMapsProp);
+		else
+			assertNull(bean.mapOfMapsProp);
+		
+		MyBean bean2 = session.find(MyBean.class, bean.id);
+		
+		assertNotSame(bean, bean2);
+		assertNotNull(bean2.mapOfMapsProp);
+		assertFalse(bean2.mapOfMapsProp instanceof ApolloMap);
+		
+		configure(true);
+		
+		Map<String, Map<String, String>> data = new LinkedHashMap<String, Map<String,String>>();
+		
+		{
+			for (int i = 0; i < 3; i++) {
+				String rowKey = "rowKey #" + i;
+				
+				Map<String, String> cols = new LinkedHashMap<String, String>();
+				
+				data.put(rowKey, cols);
+				
+				for (int j = 10; j < 13; j++) {
+					String colKey = "colKey #" + j;
+					
+					cols.put(colKey, "" + (j * 3 + i));
+				}
+			}
+		}
+		
+		logger.info("$$$$$$$$$$  Testing storage and organization capability $$$$$$$$$$$$$");
+		
+		bean = new MyBean();
+		bean.mapOfMapsProp = new LinkedHashMap<String, Map<String,String>>();
+		
+		for (String rowKey : data.keySet()) {
+			Map<String, String> cols = data.get(rowKey);
+
+			Map<String, String> _cols = new HashMap<String, String>(cols);
+			
+			bean.mapOfMapsProp.put(rowKey, _cols);
+		}
+		
+		session.save(bean);
+		
+		assertNotNull(bean.mapOfMapsProp);
+		assertTrue(bean.mapOfMapsProp instanceof Map);
+		
+		if (lazy_loaded)
+			assertTrue(bean.mapOfMapsProp instanceof ApolloMapImpl);
+		else
+			assertFalse(bean.mapOfMapsProp instanceof ApolloMapImpl);
+		
+		if (lazy_loaded) {
+			for (int i = 3; i < 6; i++) {
+				String rowKey = "rowKey #" + i;
+				
+				Map<String, String> cols = new LinkedHashMap<String, String>();
+				
+				Map<String, String> _cols = bean.mapOfMapsProp.get(rowKey);
+				
+				data.put(rowKey, cols);
+				
+				for (int j = 10; j < 13; j++) {
+					String colKey = "colKey #" + j;
+					
+					String val = "" + (j * 3 + i);
+					
+					cols.put(colKey, val);
+					
+					_cols.put(colKey, val);
+				}
+			}
+		}
+		
+		assertEquals(data.size(), bean.mapOfMapsProp.size());
+		
+		for (String rowKey : data.keySet()) {
+			Map<String, String> cols = data.get(rowKey);
+			
+			Map<String, String> expected_cols = bean.mapOfMapsProp.get(rowKey);
+			
+			assertNotNull(expected_cols);
+			assertEquals(cols.size(), expected_cols.size());
+			
+			for (String colKey : cols.keySet()) {
+				String val = cols.get(colKey);
+				String exp_val = expected_cols.get(colKey);
+				
+				assertNotNull(exp_val);
+				assertEquals(val, exp_val);
+			}
+		}
+		
+		logger.info("$$$$$$$$$$  Verifying stored data $$$$$$$$$$$$$");
+		
+		bean2 = session.find(MyBean.class, bean.id);
+		
+		assertNotSame(bean, bean2);
+		
+		assertNotNull(bean2.mapOfMapsProp);
+		assertTrue(bean2.mapOfMapsProp instanceof Map);
+		assertFalse(bean2.mapOfMapsProp instanceof ApolloMap);
+		
+		for (String rowKey : data.keySet()) {
+			Map<String, String> cols = data.get(rowKey);
+			
+			Map<String, String> expected_cols = bean2.mapOfMapsProp.get(rowKey);
+			
+			assertNotNull(expected_cols);
+			
+			if (!lazy_loaded)
+				assertEquals(cols.size(), expected_cols.size());
+			
+			for (String colKey : cols.keySet()) {
+				String val = cols.get(colKey);
+				String exp_val = expected_cols.get(colKey);
+				
+				assertNotNull(exp_val);
+				assertEquals(val, exp_val);
+			}
 		}
 	}
 	

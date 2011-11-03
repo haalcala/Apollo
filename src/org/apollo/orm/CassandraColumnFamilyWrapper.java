@@ -94,10 +94,8 @@ public class CassandraColumnFamilyWrapper {
 	}
 
 	public void insertColumn(String key, String columnName, String value) {
-		/*
 		if (logger.isDebugEnabled())
 			logger.debug(LOG_PREFIX + "Inserting key: '" + key + "' col: '" + columnName + "' val: '" + value + "'");
-		*/
 		
 		if (key == null || (key != null && "".equals(key)))
 			throw new RuntimeException("the parameter 'key' can neither be null or empty string");
