@@ -680,7 +680,7 @@ public class SessionImpl implements Session, ApolloConstants {
 		if (logger.isDebugEnabled()) 
 			logger.debug("*********************   Saving class "+object.getClass()+" object " + object + " **************************");
 		
-		Map<String, List<String>> no_auto_delete_list = null;
+		Map<String, List<String>> no_auto_delete_list = new LinkedHashMap<String, List<String>>();
 		
 		try {
 			ClassConfig cc = getClassConfig(object);
@@ -838,21 +838,7 @@ public class SessionImpl implements Session, ApolloConstants {
 						
 						addToDataToSave(cc.cfName, cfsToSave, idValue, column, listKey);
 						
-						if (!Util.getBooleanValue(propConfig.get(ATTR_CASCADE_DELETE), true)) {
-							if (no_auto_delete_list == null)
-								no_auto_delete_list = new LinkedHashMap<String, List<String>>();
-							
-							List<String> skip_keys = no_auto_delete_list.get(cc.cfName);
-							
-							if (skip_keys == null) {
-								skip_keys = new ArrayList<String>();
-								
-								no_auto_delete_list.put(cc.cfName, skip_keys);
-							}
-							
-							if (!skip_keys.contains(listKey))
-								skip_keys.add(listKey);
-						}
+						addToNoAutoDelete(no_auto_delete_list, propConfig, cc.cfName, listKey);
 						
 						if (list != null) {
 							for (Object object2 : list) {
@@ -1025,20 +1011,22 @@ public class SessionImpl implements Session, ApolloConstants {
 							
 							boolean delete_collection_type = true;
 							
-							if (no_auto_delete_list != null) {
-								List<String> _no_auto_delete_list = no_auto_delete_list.get(columnFamily);
-								
-								if (logger.isDebugEnabled())
-									logger.debug(log_prefix + " _no_auto_delete_list: " + _no_auto_delete_list);
-								
-								if (_no_auto_delete_list != null)
-									delete_collection_type = !_no_auto_delete_list.contains(rowKey);
-							}
+							List<String> _no_auto_delete_list = no_auto_delete_list.get(columnFamily);
+
+							if (logger.isDebugEnabled())
+								logger.debug(log_prefix + " _no_auto_delete_list: " + _no_auto_delete_list);
+
+							if (_no_auto_delete_list != null)
+								delete_collection_type = !_no_auto_delete_list.contains(rowKey);
 							
 							if (delete_collection_type && 
 									(rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_KEY_COLLECTION_INDEX) 
-									|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_KEY_COLLECTION_INDEX)))
+									|| rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX + SYS_STR_KEY_COLLECTION_INDEX))) {
+								if (logger.isDebugEnabled())
+									logger.debug("[CF:"+columnFamily+"] Auto-deleting row with key: " + rowKey);
+								
 								_cf.deleteRow(rowKey);
+							}
 							else
 								if (logger.isDebugEnabled())
 									logger.debug(log_prefix + " Not auto-deleting collection type with id: " + rowKey);
@@ -1076,9 +1064,6 @@ public class SessionImpl implements Session, ApolloConstants {
 			Map<String, String> propConfig, String column_family, String rowKey) {
 		
 		if (!Util.getBooleanValue(propConfig.get(ATTR_CASCADE_DELETE), true)) {
-			if (no_auto_delete_list == null)
-				no_auto_delete_list = new LinkedHashMap<String, List<String>>();
-			
 			List<String> _no_auto_delete_list = no_auto_delete_list.get(column_family);
 			
 			if (_no_auto_delete_list == null) {
