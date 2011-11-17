@@ -1,7 +1,8 @@
 package org.apollo.orm;
 
-import static me.prettyprint.hector.api.factory.HFactory.createRangeSuperSlicesQuery;
-import static org.junit.Assert.assertNotNull;
+import static me.prettyprint.hector.api.factory.HFactory.*;
+import static org.apollo.orm.ApolloConstants.*;
+import static org.junit.Assert.*;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
@@ -18,11 +19,17 @@ import java.util.Set;
 import me.prettyprint.cassandra.model.BasicColumnDefinition;
 import me.prettyprint.cassandra.model.BasicColumnFamilyDefinition;
 import me.prettyprint.cassandra.model.IndexedSlicesQuery;
+import me.prettyprint.cassandra.serializers.BytesArraySerializer;
+import me.prettyprint.cassandra.serializers.IntegerSerializer;
+import me.prettyprint.cassandra.serializers.LongSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
+import me.prettyprint.cassandra.serializers.TimeUUIDSerializer;
+import me.prettyprint.cassandra.serializers.TypeInferringSerializer;
 import me.prettyprint.cassandra.service.ThriftCfDef;
-import me.prettyprint.cassandra.service.ThriftCluster;
 import me.prettyprint.cassandra.service.ThriftColumnDef;
+import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
+import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.beans.ColumnSlice;
 import me.prettyprint.hector.api.beans.HColumn;
 import me.prettyprint.hector.api.beans.HSuperColumn;
@@ -43,31 +50,36 @@ import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.MutationResult;
 import me.prettyprint.hector.api.mutation.Mutator;
 import me.prettyprint.hector.api.query.ColumnQuery;
+import me.prettyprint.hector.api.query.MultigetSliceCounterQuery;
 import me.prettyprint.hector.api.query.MultigetSliceQuery;
 import me.prettyprint.hector.api.query.QueryResult;
 import me.prettyprint.hector.api.query.RangeSlicesQuery;
 import me.prettyprint.hector.api.query.RangeSuperSlicesQuery;
 import me.prettyprint.hector.api.query.SliceQuery;
 
+import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.thrift.ColumnDef;
 import org.apache.cassandra.thrift.IndexType;
 import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.log4j.Logger;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.thrift.TException;
 import org.apollo.orm.ApolloConstants.Util;
-
-import static org.apollo.orm.ApolloConstants.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CassandraColumnFamilyWrapper {
-	private Logger logger = Logger.getLogger(getClass());
+	private Logger logger = LoggerFactory.getLogger(getClass());
 	
 	private Keyspace keyspace;
 
 	private String columnFamily;
 	
 	private StringSerializer stringSerializer = StringSerializer.get();
+	private IntegerSerializer integerSerializer = IntegerSerializer.get();
+	private LongSerializer longSerializer = LongSerializer.get();
+	private TimeUUIDSerializer timeUUIDSerializer = TimeUUIDSerializer.get();
 	
-	private ComparatorType comparatorType = ComparatorType.UTF8TYPE;
+	private ComparatorType comparatorType = ComparatorType.ASCIITYPE;
 
 	private List<ColumnDefinition> columnMetadata = null;
 
@@ -84,8 +96,6 @@ public class CassandraColumnFamilyWrapper {
 		
 		this.isSuper = isSuper;
 		
-		//logger = Logger.getLogger(getClass() + ".cf." + columnFamily);
-		
 		LOG_PREFIX = "CFW[" + columnFamily + "] ";
 	}
 	
@@ -93,9 +103,13 @@ public class CassandraColumnFamilyWrapper {
 		this(keyspaceWrapper, columnFamily, false);
 	}
 
-	public void insertColumn(String key, String columnName, String value) {
+	public void insertColumn(String key, String columnName, Serializable value) throws Exception {
+		insertColumn(key, columnName, value, getColumnSerializer(columnName, true));
+	}
+	
+	public void insertColumn(String key, String columnName, Serializable value, Serializer serializer) {
 		if (logger.isDebugEnabled())
-			logger.debug(LOG_PREFIX + "Inserting key: '" + key + "' col: '" + columnName + "' val: '" + value + "'");
+			logger.debug(LOG_PREFIX + "Inserting key: '" + key + "' col: '" + columnName + "' val: '" + value + "' value_class: '" + value.getClass() + "' serialiser: " + serializer);
 		
 		if (key == null || (key != null && "".equals(key)))
 			throw new RuntimeException("the parameter 'key' can neither be null or empty string");
@@ -105,10 +119,35 @@ public class CassandraColumnFamilyWrapper {
 			throw new RuntimeException("the parameter 'value' can neither be null or empty string");
 		
 		Mutator<String> mutator = HFactory.createMutator(keyspace, stringSerializer);
-		mutator.insert(key, columnFamily, HFactory.createStringColumn(columnName, value));
+		
+		value = valueToSerialiserFriendly(value, serializer);
+		
+		mutator.insert(key, columnFamily, HFactory.createColumn(columnName, value, stringSerializer, serializer));
+		
 		MutationResult result = mutator.execute();
 	}
 	
+	private Serializable valueToSerialiserFriendly(Serializable value, Serializer serializer) {
+		
+		if (value != null) {
+			Class<?> value_class = value.getClass();
+			
+			if (serializer == IntegerSerializer.get() && value_class != Integer.class) {
+				value = new Integer("" + value);
+			}
+			else if (serializer == LongSerializer.get() 
+					&& value_class != Long.class) {
+				if (value_class == double.class || value_class == Double.class) {
+					value = ((Double) value).longValue();
+				} else {
+					value = new Long("" + value);
+				}
+			}
+		}
+		
+		return value;
+	}
+
 	public void insertSuperColumn(String rowKey, String columnKey, Map<String, String> values) {
 		Mutator<String> mutator = HFactory.createMutator(keyspace, stringSerializer);
 		
@@ -135,6 +174,7 @@ public class CassandraColumnFamilyWrapper {
 			thriftCfDef.setColumnType(ColumnType.SUPER);
 		
 		thriftCfDef.setDefaultValidationClass(comparatorType.getClassName());
+		thriftCfDef.setKeyValidationClass("UTF8Type");
 		
 		boolean found = false;
 		long procStart = System.currentTimeMillis();
@@ -179,6 +219,9 @@ public class CassandraColumnFamilyWrapper {
 	}
 	
 	public void updateColumnMetadata() {
+		if (logger.isDebugEnabled())
+			logger.debug("updateColumnMetadata ... ");
+		
 		KeyspaceDefinition ksd = keyspaceWrapper.getCluster().describeKeyspace(keyspace.getKeyspaceName());
 		
 		List<ColumnFamilyDefinition> cfDefs = ksd.getCfDefs();
@@ -197,25 +240,6 @@ public class CassandraColumnFamilyWrapper {
 			
 			List<ColumnDefinition> _colDef = new ArrayList<ColumnDefinition>(cfDef.getColumnMetadata());
 			
-			/*
-			for (ColumnDefinition colDef : columnMetadata) {
-				boolean found = false;
-				
-				for (ColumnDefinition __colDef : _colDef) {
-					if (new String(colDef.getName().array()).equals(new String(__colDef.getName().array()))) {
-						found = true;
-						break;
-					}
-				}
-				
-				if (!found) {
-					logger.debug(LOG_PREFIX + "Adding new column definition: '" + new String(colDef.getName().array()) + "'");
-					
-					_colDef.add(colDef);
-				}
-			}
-			*/
-			
 			cfDef = HFactory.createColumnFamilyDefinition(keyspace.getKeyspaceName(), columnFamily, comparatorType, _colDef);
 			
 			ColumnDef cd = new ColumnDef();
@@ -225,8 +249,11 @@ public class CassandraColumnFamilyWrapper {
 		}
 	}
 	
-	public void updateColumnFamilyMetaData(String column, ColumnIndexType indexType, ComparatorType comparator) throws ApolloException {
-		ThriftCluster cassandraCluster = keyspaceWrapper.getCluster();
+	public void updateColumnFamilyMetaData(String column, ColumnIndexType indexType, AbstractType<?> comparator) throws ApolloException {
+		if (logger.isDebugEnabled())
+			logger.debug("updateColumnFamilyMetaData ... (String column, ColumnIndexType indexType, AbstractType<?> comparator)");
+		
+		Cluster cassandraCluster = keyspaceWrapper.getCluster();
 
 		KeyspaceDefinition fromCluster = cassandraCluster.describeKeyspace(keyspace.getKeyspaceName());
 
@@ -237,24 +264,39 @@ public class CassandraColumnFamilyWrapper {
 				
 				BasicColumnFamilyDefinition columnFamilyDefinition = new BasicColumnFamilyDefinition(cfDef);
 				
+				/*
+				columnFamilyDefinition.setColumnType(cfDef.getColumnType());
+				columnFamilyDefinition.setComparatorType(cfDef.getComparatorType());
+				columnFamilyDefinition.setDefaultValidationClass(cfDef.getDefaultValidationClass());
+				columnFamilyDefinition.setKeyspaceName(keyspace.getKeyspaceName());
+				columnFamilyDefinition.setName(columnFamily);
+				columnFamilyDefinition.setId(cfDef.getId());
+				*/
+				
 				BasicColumnDefinition columnDefinition = new BasicColumnDefinition();
-
+				
 				columnDefinition.setName(StringSerializer.get().toByteBuffer(column));
 				
 				if (indexType == ColumnIndexType.KEYS) {
-					columnDefinition.setIndexName(column);
+					//columnDefinition.setIndexName(column);
 					columnDefinition.setIndexType(indexType);
 				}
 				
-				columnDefinition.setValidationClass(comparator.getClassName());
+				String validation_class = comparator.getClass().getCanonicalName();
+				
+				columnDefinition.setValidationClass(validation_class);
 				
 				columnFamilyDefinition.addColumnDefinition(columnDefinition);
+				
+				if (logger.isDebugEnabled())
+					logger.debug("Updating column family '" + columnFamily + "' column: '" + column 
+							+ "' validation_class: " + validation_class + " columnFamilyDefinition: " + columnFamilyDefinition);
 				
 				boolean ready = false;
 
 				do {
 					try {
-						cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition));
+						cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition), true);
 
 						if (logger.isDebugEnabled())
 							logger.debug("Succesfully added column index for column '" + column + "'");
@@ -275,9 +317,9 @@ public class CassandraColumnFamilyWrapper {
 							continue;
 						}
 						
-						if (e.getMessage().indexOf("Duplicate index") == -1) {
+						//if (e.getMessage().indexOf("Duplicate index") == -1) {
 							throw new ApolloException(e);
-						}
+						//}
 					}
 				} while (!ready);
 				
@@ -286,8 +328,75 @@ public class CassandraColumnFamilyWrapper {
 		}
 	}
 	
+	public Serializer<?> getColumnSerializer(String column, boolean returnDefault) throws Exception {
+		Cluster cassandraCluster = keyspaceWrapper.getCluster();
+
+		KeyspaceDefinition fromCluster = cassandraCluster.describeKeyspace(keyspace.getKeyspaceName());
+
+		List<ColumnFamilyDefinition> cfDefs = fromCluster.getCfDefs();
+
+		for (ColumnFamilyDefinition cfDef : cfDefs) {
+			if (cfDef.getName().equals(columnFamily)) {
+				
+				List<ColumnDefinition> column_defs = cfDef.getColumnMetadata();
+				
+				for (ColumnDefinition columnDefinition : column_defs) {
+					String _column = stringSerializer.fromByteBuffer(columnDefinition.getName());
+					
+					if (logger.isDebugEnabled())
+						logger.debug("Inspecting column '" + _column + "' ... " + _column.equals(column));
+					
+					if (_column.equals(column)) {
+						String validation_class = columnDefinition.getValidationClass();
+						
+						Class<?> clazz = Class.forName(validation_class);
+						
+						Serializer<?> ret = Util.getCassandraTypeSerialiser(clazz);
+						
+						if (logger.isDebugEnabled())
+							logger.debug("The determined serialiser for class '" + clazz + "' is '" + ret + "' ("+validation_class+") for column '" + column + "' ("+_column+")");
+						
+						return ret;
+					}
+				}
+				
+				if (returnDefault)
+					return getDefaultSerialiser();
+				else
+					return null;
+			}
+		}
+		
+		if (logger.isDebugEnabled())
+			logger.warn("No found serializer for column '" + column + "'");
+		
+		return null;
+	}
+	
+	public Serializer<?> getDefaultSerialiser() throws Exception {
+		Cluster cassandraCluster = keyspaceWrapper.getCluster();
+
+		KeyspaceDefinition fromCluster = cassandraCluster.describeKeyspace(keyspace.getKeyspaceName());
+
+		List<ColumnFamilyDefinition> cfDefs = fromCluster.getCfDefs();
+
+		for (ColumnFamilyDefinition cfDef : cfDefs) {
+			if (cfDef.getName().equals(columnFamily)) {
+				String validation_class = cfDef.getDefaultValidationClass();
+				
+				Class<?> clazz = Class.forName(validation_class);
+				
+				Serializer<?> ret = Util.getCassandraTypeSerialiser(clazz);
+				
+				return ret;
+			}
+		}
+		
+		return null;
+	}
+	
 	public boolean isColumnIndexed(String column) {
-		ThriftCluster cassandraCluster = keyspaceWrapper.getCluster();
+		Cluster cassandraCluster = keyspaceWrapper.getCluster();
 		
 		KeyspaceDefinition fromCluster = cassandraCluster.describeKeyspace(keyspace.getKeyspaceName());
 		
@@ -408,21 +517,28 @@ public class CassandraColumnFamilyWrapper {
 	 * @param key
 	 * @param columnName
 	 * @return value of a column
+	 * @throws Exception 
 	 */
-	public String getColumnValue(String key, String columnName) {
+	public Serializable getColumnValue(String key, String columnName) throws Exception {
+		Serializer<?> serializer = getColumnSerializer(columnName, true);
+		
+		return getColumnValue(key, columnName, serializer);
+	}
+	
+	public Serializable getColumnValue(String key, String columnName, Serializer<?> serializer) {
 		if (logger.isDebugEnabled())
 			logger.debug(LOG_PREFIX + "Retrieving value for column '" + columnName + "' with key '" + key + "'");
 		
-		ColumnQuery<String, String, String> columnQuery = HFactory.createStringColumnQuery(keyspace);
+		ColumnQuery<String, String, ?> columnQuery = HFactory.createColumnQuery(keyspace, stringSerializer, stringSerializer, serializer);
 
 		columnQuery.setColumnFamily(columnFamily).setKey(key).setName(columnName);
 
-		QueryResult<HColumn<String, String>> result = columnQuery.execute();
+		QueryResult<?> result = columnQuery.execute();
 
-		HColumn<String, String> col = result.get();
+		HColumn<String, ?> col = (HColumn<String, ?>) result.get();
 		
 		if (col != null) {
-			String val = col.getValue();
+			Serializable val = (Serializable) col.getValue();
 			
 			return val;
 		}
@@ -653,12 +769,12 @@ public class CassandraColumnFamilyWrapper {
 		return ret;
 	}
 	
-	public Map<String, Map<String, String>> findColumnWithValue(List<Expression> criterias, Session session, 
+	public Map<String, Map<String, Serializable>> findColumnWithValue(List<Expression> criterias, Session session, 
 			ClassConfig classConfig, ArrayList<String> column_list) 
 					throws SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, 
 							InvocationTargetException {
 		
-		Map<String, Map<String, String>> ret = null;
+		Map<String, Map<String, Serializable>> ret = null;
 
 		IndexedSlicesQuery<String, String, String> q = HFactory.createIndexedSlicesQuery(keyspace, stringSerializer, stringSerializer, stringSerializer);
 		
@@ -795,12 +911,12 @@ public class CassandraColumnFamilyWrapper {
 			}
 			
 			if (ret == null)
-				ret = new LinkedHashMap<String, Map<String,String>>();
+				ret = new LinkedHashMap<String, Map<String,Serializable>>();
 			
 			List<HColumn<String, String>> cols = row.getColumnSlice().getColumns();
 			
 			if (cols != null) {
-				Map<String, String> rcols = new LinkedHashMap<String, String>();
+				Map<String, Serializable> rcols = new LinkedHashMap<String, Serializable>();
 				
 				for (HColumn<String, String> hcol : cols) {
 					rcols.put(hcol.getName(), hcol.getValue());
@@ -884,25 +1000,25 @@ public class CassandraColumnFamilyWrapper {
 		mutator.execute();
 	}
 	
-	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
-			String endColumn, final int maxColumns, final int maxRows) {
+	public Map<String, Map<String, Serializable>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
+			String endColumn, final int maxColumns, final int maxRows) throws Exception {
 		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, maxRows > ApolloConstants.MAX_ROWS_PER_PAGE ? ApolloConstants.MAX_ROWS_PER_PAGE : maxRows);
 	}
 	
-	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
-			String endColumn, final int maxColumns, final int maxRows, boolean keysOnly) {
+	public Map<String, Map<String, Serializable>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
+			String endColumn, final int maxColumns, final int maxRows, boolean keysOnly) throws Exception {
 		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, maxRows > 1000 || maxRows == 0 ? 1000 : maxRows, keysOnly);
 	}
 	
-	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
-			String endColumn, final int maxColumns, final int maxRows, final int rowsPerPage) {
+	public Map<String, Map<String, Serializable>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
+			String endColumn, final int maxColumns, final int maxRows, final int rowsPerPage) throws Exception {
 		return getColumnsAsMap(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, rowsPerPage, false);
 	}
 		
-	public Map<String, Map<String, String>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
-			String endColumn, final int maxColumns, final int maxRows, final int rowsPerPage, boolean keysOnly) {
+	public Map<String, Map<String, Serializable>> getColumnsAsMap(final String startKey, String endKey, final String startColumn, 
+			String endColumn, final int maxColumns, final int maxRows, final int rowsPerPage, boolean keysOnly) throws Exception {
 			
-		final Map<String, Map<String, String>> ret = new LinkedHashMap<String, Map<String,String>>();
+		final Map<String, Map<String, Serializable>> ret = new LinkedHashMap<String, Map<String,Serializable>>();
 		
 		if (logger.isDebugEnabled())
 			logger.debug(LOG_PREFIX + "Retrieving colums as map: startKey: '" + startKey + "' startColumn: '" + startColumn + "' maxRows: " + maxRows + " rowsPerPage: " + rowsPerPage + " maxCols: " + maxColumns);
@@ -941,10 +1057,10 @@ public class CassandraColumnFamilyWrapper {
 			do {
 				c.tmpRowCount = 0;
 
-				getColumns(c._startKey, endKey, c._startCol, endColumn, maxColumns, c._maxRows, keysOnly, new GetColumnsHandlerAdapter() {
+				getColumns(c._startKey, endKey, c._startCol, endColumn, maxColumns, c._maxRows, keysOnly, null, new GetColumnsHandlerAdapter() {
 					private int skipRows;
 					private int skipCols;
-					private Map<String, String> cols;
+					private Map<String, Serializable> cols;
 
 					@Override
 					public void onStartRow(String rowKey) {
@@ -964,7 +1080,7 @@ public class CassandraColumnFamilyWrapper {
 						cols = ret.get(rowKey);
 						
 						if (cols == null) {
-							cols = new LinkedHashMap<String, String>();
+							cols = new LinkedHashMap<String, Serializable>();
 							
 							ret.put(rowKey, cols);
 						}
@@ -976,7 +1092,7 @@ public class CassandraColumnFamilyWrapper {
 					}
 
 					@Override
-					public void onColumn(String col, String val) {
+					public void onColumn(String col, Serializable val) {
 						c.tmpColCount++;
 
 						//c.startCol = col;
@@ -1034,18 +1150,18 @@ public class CassandraColumnFamilyWrapper {
 	}
 	
 	public void getColumns(String startKey, String endKey, String startColumn, 
-			String endColumn, int maxColumns, int maxRows, GetColumnsHandler handler) {
-		getColumns(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, false, handler);
+			String endColumn, int maxColumns, int maxRows, List<Serializer<?>> serialisers, GetColumnsHandler handler) throws Exception {
+		getColumns(startKey, endKey, startColumn, endColumn, maxColumns, maxRows, false, null, handler);
 	}
 	
 	public void getColumns(String startKey, String endKey, String startColumn, 
-			String endColumn, int maxColumns, int maxRows, boolean keysOnly, GetColumnsHandler handler) {
+			String endColumn, int maxColumns, int maxRows, boolean keysOnly, List<Serializer<?>> serialisers, GetColumnsHandler handler) throws Exception {
 		
 		//logger.debug(LOG_PREFIX + "getRowsWithKeyRange: START");
 		
-		RangeSlicesQuery<String, String, String> rangeSlicesQuery
-				= HFactory.createRangeSlicesQuery(keyspace, stringSerializer, stringSerializer, stringSerializer);
-
+		RangeSlicesQuery<String, String, byte[]> rangeSlicesQuery
+				= HFactory.createRangeSlicesQuery(keyspace, stringSerializer, stringSerializer, BytesArraySerializer.get());
+		
 		rangeSlicesQuery.setColumnFamily(columnFamily);
 		rangeSlicesQuery.setKeys(startKey, endKey);
 		rangeSlicesQuery.setRange(startColumn, endColumn, false, maxColumns);
@@ -1055,16 +1171,16 @@ public class CassandraColumnFamilyWrapper {
 		if (keysOnly)
 			rangeSlicesQuery.setReturnKeysOnly();
 
-		QueryResult<OrderedRows<String, String, String>> result = rangeSlicesQuery.execute();
+		QueryResult<OrderedRows<String, String, byte[]>> result = rangeSlicesQuery.execute();
 
-		OrderedRows<String, String, String> orows = result.get();
+		OrderedRows<String, String, byte[]> orows = result.get();
 
 		/*
 		logger.debug(LOG_PREFIX + "About to do range scan. startKey: '" + startKey + "' startColumn: '" + startColumn 
 				+ "' maxRows: " + maxRows + " maxColumns: " + maxColumns + " result count: " + orows.getCount());
 		*/
 		
-		for (Row<String, String, String> row : orows) {
+		for (Row<String, String, byte[]> row : orows) {
 			String key = row.getKey();
 
 			startKey = key;
@@ -1080,21 +1196,23 @@ public class CassandraColumnFamilyWrapper {
 				continue;
 
 			if (!keysOnly) {
-				ColumnSlice<String, String> cs = row.getColumnSlice(); 
+				ColumnSlice<String, byte[]> cs = row.getColumnSlice(); 
 
 				int colsCounted = 0;
 
-				List<HColumn<String, String>> cols = cs.getColumns();
+				List<HColumn<String, byte[]>> cols = cs.getColumns();
 
 				//logger.debug("cols.size: " + cols.size());
 
-				Iterator<HColumn<String, String>> iterator = cols.iterator();
+				Iterator<HColumn<String, byte[]>> iterator = cols.iterator();
 
 				for (; iterator.hasNext();) {
-					HColumn<String, String> hcol = (HColumn<String, String>) iterator.next();
+					HColumn<String, byte[]> hcol = iterator.next();
 
 					String col = hcol.getName();
-					String val = hcol.getValue();
+					byte[] bytes = hcol.getValue();
+					
+					Serializable val = (Serializable) getColumnSerializer(col, true).fromBytes(bytes);
 
 					handler.onColumn(col, val);
 
@@ -1177,7 +1295,7 @@ public class CassandraColumnFamilyWrapper {
 		return keyspaceWrapper.doesColumnFamilyExist(columnFamily);
 	}
 
-	public void saveRowsAndColumns(Map<String, Map<String, String>> rows) {
+	public void saveRowsAndColumns(Map<String, Map<String, Serializable>> rows) throws Exception {
 		if (isSuper)
 			throw new RuntimeException("saveRowsAndColumns is only for standard column families");
 		
@@ -1185,10 +1303,10 @@ public class CassandraColumnFamilyWrapper {
 			logger.debug(LOG_PREFIX + "Trying to save : " + rows);
 		
 		for (String rowKey : rows.keySet()) {
-			Map<String, String> cols = rows.get(rowKey);
+			Map<String, Serializable> cols = rows.get(rowKey);
 			
 			for (String col : cols.keySet()) {
-				String val = cols.get(col);
+				Serializable val = cols.get(col);
 				
 				if (logger.isDebugEnabled())
 					logger.debug(LOG_PREFIX + "Saving key: " + rowKey + " col: " + col + " val: " + val);

@@ -8,6 +8,6 @@
             <generator class="native"/>
         </id>
 
-		<property name="mapPropWithColumn" column="justAnotherCustomColumn" />
+		<property name="mapPropWithColumn" column="mapPropWithCustomColumn" />
    </class>
 </hibernate-mapping>

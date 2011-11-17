@@ -1,11 +1,41 @@
 package org.apollo.orm;
 
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import me.prettyprint.cassandra.serializers.AsciiSerializer;
+import me.prettyprint.cassandra.serializers.BooleanSerializer;
+import me.prettyprint.cassandra.serializers.BytesArraySerializer;
+import me.prettyprint.cassandra.serializers.DateSerializer;
+import me.prettyprint.cassandra.serializers.DoubleSerializer;
+import me.prettyprint.cassandra.serializers.FloatSerializer;
+import me.prettyprint.cassandra.serializers.IntegerSerializer;
+import me.prettyprint.cassandra.serializers.LongSerializer;
+import me.prettyprint.cassandra.serializers.StringSerializer;
+import me.prettyprint.cassandra.serializers.TimeUUIDSerializer;
+import me.prettyprint.hector.api.Serializer;
+
+import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.AsciiType;
+import org.apache.cassandra.db.marshal.BooleanType;
+import org.apache.cassandra.db.marshal.BytesType;
+import org.apache.cassandra.db.marshal.CounterColumnType;
+import org.apache.cassandra.db.marshal.DateType;
+import org.apache.cassandra.db.marshal.DoubleType;
+import org.apache.cassandra.db.marshal.FloatType;
+import org.apache.cassandra.db.marshal.IntegerType;
+import org.apache.cassandra.db.marshal.LongType;
+import org.apache.cassandra.db.marshal.TimeUUIDType;
+import org.apache.cassandra.db.marshal.UTF8Type;
 
 public interface ApolloConstants {
 
@@ -58,8 +88,48 @@ public interface ApolloConstants {
 	
 	public static final String SYSTEM_DATE_FORMAT = "yyyy/MM/dd HH:mm:ss.SSS";
 
-
 	public static class Util {
+		private static final Map<Class, Serializer<?>> cassandraTypeSerialiser = new HashMap<Class, Serializer<?>>();
+		private static final Map<Class, Serializer<?>> javaTypeSerialiser = new HashMap<Class, Serializer<?>>();
+		private static final Map<Class, AbstractType<?>> javaTypeToCassandraType = new HashMap<Class, AbstractType<?>>();
+
+		public static final List<AbstractType<?>> cassandra_type_number_hierarchy = new ArrayList<AbstractType<?>>();
+
+		static {
+			cassandraTypeSerialiser.put(IntegerType.class, IntegerSerializer.get());
+			cassandraTypeSerialiser.put(LongType.class, LongSerializer.get());
+			cassandraTypeSerialiser.put(UTF8Type.class, StringSerializer.get());
+			cassandraTypeSerialiser.put(AsciiType.class, StringSerializer.get());
+			cassandraTypeSerialiser.put(FloatType.class, FloatSerializer.get());
+			cassandraTypeSerialiser.put(DoubleType.class, DoubleSerializer.get());
+			cassandraTypeSerialiser.put(BooleanType.class, BooleanSerializer.get());
+			cassandraTypeSerialiser.put(BytesType.class, IntegerSerializer.get());
+			cassandraTypeSerialiser.put(DateType.class, DateSerializer.get());
+			cassandraTypeSerialiser.put(CounterColumnType.class, LongSerializer.get());
+			
+			javaTypeSerialiser.put(Integer.TYPE, IntegerSerializer.get());
+			javaTypeSerialiser.put(Long.TYPE, LongSerializer.get());
+			javaTypeSerialiser.put(Float.TYPE, FloatSerializer.get());
+			javaTypeSerialiser.put(Double.TYPE, DoubleSerializer.get());
+			javaTypeSerialiser.put(Boolean.TYPE, BooleanSerializer.get());
+			javaTypeSerialiser.put(Byte.TYPE, IntegerSerializer.get());
+			javaTypeSerialiser.put(Date.class, DateSerializer.get());
+			javaTypeSerialiser.put(Timestamp.class, DateSerializer.get());
+			javaTypeSerialiser.put(String.class, StringSerializer.get());
+			javaTypeSerialiser.put(BigInteger.class, LongSerializer.get());
+			
+			javaTypeToCassandraType.put(Integer.TYPE, IntegerType.instance);
+			javaTypeToCassandraType.put(Long.TYPE, LongType.instance);
+			javaTypeToCassandraType.put(Float.TYPE, FloatType.instance);
+			javaTypeToCassandraType.put(Double.TYPE, DoubleType.instance);
+			javaTypeToCassandraType.put(Boolean.TYPE, BooleanType.instance);
+			javaTypeToCassandraType.put(Byte.TYPE, BytesType.instance);
+			javaTypeToCassandraType.put(Date.class, DateType.instance);
+			javaTypeToCassandraType.put(String.class, UTF8Type.instance);
+			javaTypeToCassandraType.put(Timestamp.class, DateType.instance);
+			javaTypeToCassandraType.put(BigInteger.class, LongType.instance);
+		}
+		
 		public static ApolloIterator<String> getApolloRowIterator(CassandraColumnFamilyWrapper cf) {
 			return new ApolloKeyIteratorImpl(cf, "", 0, null, null, 0, MAX_ROWS_PER_PAGE, true);
 		}
@@ -82,6 +152,18 @@ public interface ApolloConstants {
 		
 		public static ApolloIterator<String> getApolloColumnIterator(CassandraColumnFamilyWrapper cf, String rowKey, String startCol, String endCol, int maxColumns, int colsPerPage) {
 			return new ApolloKeyIteratorImpl(cf, rowKey, 0, startCol, endCol, maxColumns, colsPerPage, false);
+		}
+		
+		public static Serializer<?> getCassandraTypeSerialiser(Class<?> clazz) {
+			return cassandraTypeSerialiser.get(clazz);
+		}
+		
+		public static Serializer<?> getJavaTypeSerialiser(Class<?> clazz) {
+			return javaTypeSerialiser.get(clazz);
+		}
+		
+		public static AbstractType<?> getJavaTypeToCassandraType(Class<?> clazz) {
+			return javaTypeToCassandraType.get(clazz);
 		}
 		
 		public static boolean isNativelySupported(Class<?> c) {

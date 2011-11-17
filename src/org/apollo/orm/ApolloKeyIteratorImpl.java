@@ -1,5 +1,6 @@
 package org.apollo.orm;
 
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -19,7 +20,7 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 	
 	private CassandraColumnFamilyWrapper cf;
 	
-	private Map<String, String> cols;
+	private Map<String, Serializable> cols;
 	
 	private long keyCount;
 	
@@ -76,13 +77,13 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 		throw new NoSuchElementException();
 	}
 	
-	private void loadNewPage() {
+	private void loadNewPage() throws Exception {
 		if (keyi == -1 || keyi > itemsPerPage) {
 			if (logger.isDebugEnabled())
 				logger.debug("keyi: " + keyi);
 			
 			if (scanRows) {
-				Map<String, Map<String, String>> rows = cf.getColumnsAsMap(curKey, "", "", "", 1, itemsPerPage + 1 + (keyi > itemsPerPage ? 1 : 0), true);
+				Map<String, Map<String, Serializable>> rows = cf.getColumnsAsMap(curKey, "", "", "", 1, itemsPerPage + 1 + (keyi > itemsPerPage ? 1 : 0), true);
 				
 				if (rows != null && rows.size() > 0) {
 					it = rows.keySet().iterator();
@@ -94,7 +95,7 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 				}
 			}
 			else {
-				Map<String, Map<String, String>> rows = cf.getColumnsAsMap(rowKey, "", curKey == null ? "" : curKey, "", 
+				Map<String, Map<String, Serializable>> rows = cf.getColumnsAsMap(rowKey, "", curKey == null ? "" : curKey, "", 
 						itemsPerPage + 1 + (keyi > itemsPerPage ? 1 : 0), 1, scanRows);
 				
 				if (rows != null && rows.size() > 0) {
@@ -120,7 +121,11 @@ public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
 			return false;
 		}
 		
-		loadNewPage();
+		try {
+			loadNewPage();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		
 		if (it != null)
 			return it.hasNext();

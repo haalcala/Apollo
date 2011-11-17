@@ -142,7 +142,7 @@ public class ApolloSetImpl<T> implements ApolloSet<T> {
 						ret = (T) Util.getTimestamp(currentKey);
 					}
 					else {
-						String idValue = cf.getColumnValue(rowKey, currentKey);
+						String idValue = (String) cf.getColumnValue(rowKey, currentKey);
 						
 						ret = (T) session.find(parameter_type, idValue);
 					}

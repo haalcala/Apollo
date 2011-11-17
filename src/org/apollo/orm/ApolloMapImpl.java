@@ -111,7 +111,7 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 			
 			if (mapOfMaps) {
 				try {
-					mapKey = cf.getColumnValue(rowKey, column);
+					mapKey = (String) cf.getColumnValue(rowKey, column);
 					
 					if (mapKey == null) { 
 						mapKey = rowKey + ":" + key;
@@ -131,7 +131,11 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 				}
 			}
 			else {
-				ret = (T) cf.getColumnValue(rowKey, key.toString());
+				try {
+					ret = (T) cf.getColumnValue(rowKey, key.toString());
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 			}
 			
 			if (ret != null)
@@ -158,7 +162,11 @@ public class ApolloMapImpl<T> implements Map<String, T> {
 		T ret = null;
 		
 		if (!mapOfMaps) {
-			cf.insertColumn(rowKey, key, value.toString());
+			try {
+				cf.insertColumn(rowKey, key, value.toString());
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		}
 		else {
 			T cols = (T) getMap().get(key.toString());

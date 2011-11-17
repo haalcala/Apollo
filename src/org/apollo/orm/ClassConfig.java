@@ -11,11 +11,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.cassandra.db.marshal.TimeUUIDType;
-import org.apache.log4j.Logger;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ClassConfig implements ApolloConstants {
-	private static Logger logger = Logger.getLogger(ClassConfig.class);
+	private static Logger logger = LoggerFactory.getLogger(ClassConfig.class);
 	
 	String cfName;
 	
@@ -42,10 +42,6 @@ class ClassConfig implements ApolloConstants {
 	
 	private HashMap<String, Method> propGetMethods;
 	private HashMap<String, Method> propSetMethods;
-	
-	boolean shouldProxy;
-	
-	List<Method> proxyMethods;
 	
 	Map<String, String> methodToProp;
 	
@@ -106,10 +102,10 @@ class ClassConfig implements ApolloConstants {
 		return method;
 	}
 	
-	Object getPropertyMethodValue(Object instance, String prop) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+	Serializable getPropertyMethodValue(Object instance, String prop) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		Method method = getGetMethodFromCache(prop);
 		
-		Object ret = method.invoke(instance, null);
+		Serializable ret = (Serializable) method.invoke(instance, null);
 		
 		return ret;
 	}
@@ -117,7 +113,48 @@ class ClassConfig implements ApolloConstants {
 	void setPropertyMethodValue(Object instance, String prop, Object value) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		Method method = getSetMethodFromCache(prop);
 		
-		method.invoke(instance, new Object[] {value});
+		Class<?> property_type = getPropertyType(prop);
+		
+		Object value2 = fixValueType(value, property_type);
+		
+		if (logger.isDebugEnabled())
+			logger.debug("Invoking method '" + method.getName() + "' prop: '" + prop + "' with value '" + value2 + "' " + (value2 != null ? " of type: " + value2.getClass() : null) + " " + property_type);
+		
+		method.invoke(instance, new Object[] {value2});
+	}
+
+	private Object fixValueType(Object value, Class<?> propertyType) {
+		
+		Object value2 = value;
+		
+		if (value != null && value.getClass() != propertyType) {
+			
+				if ((propertyType == Byte.class 
+						|| propertyType == byte.class)) {
+					value2 = new Byte("" + value);
+				}
+				else if ((propertyType == Long.class)
+						|| propertyType == long.class) {
+					value2 = new Long("" + value);
+				}
+				else if ((propertyType == Integer.class)
+						|| propertyType == int.class) {
+					value2 = new Integer("" + value);
+				}
+				else if ((propertyType == Double.class)
+						|| propertyType == double.class) {
+					value2 = new Double("" + value);
+				}
+				else if ((propertyType == Float.class)
+						|| propertyType == double.class) {
+					value2 = new Float("" + value);
+				}
+		}
+		
+		if (logger.isDebugEnabled())
+			logger.debug("Fixed value type from: "+value.getClass()+" to " + value2.getClass() + " " + propertyType);
+		
+		return value2;
 	}
 
 	void setMethodConfig(String propertyName, String config, String value) {
@@ -194,7 +231,12 @@ class ClassConfig implements ApolloConstants {
 	}
 	
 	public Class getPropertyType(String propertyName) {
-		return propertyType.get(propertyName);
+		Class<?> ret = propertyType.get(propertyName);
+		
+		if (logger.isDebugEnabled())
+			logger.debug("Property type for property '{}' is '{}'", propertyName, ret);
+		
+		return ret;
 	}
 	
 	public ArrayList<String> getColumnsAsList() {

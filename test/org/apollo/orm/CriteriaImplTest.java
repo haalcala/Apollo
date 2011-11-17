@@ -2,6 +2,7 @@ package org.apollo.orm;
 
 import static org.junit.Assert.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,13 +43,13 @@ public class CriteriaImplTest {
 		
 		order.add(Order.asc("col 1"));
 		
-		Map<String, Map<String, String>> rows = new LinkedHashMap<String, Map<String,String>>();
+		Map<String, Map<String, Serializable>> rows = new LinkedHashMap<String, Map<String,Serializable>>();
 		
-		Map<String, String> cols;
+		Map<String, Serializable> cols;
 		int rowKey = 1, colKey = 1;
 
 		
-		cols = new LinkedHashMap<String, String>();
+		cols = new LinkedHashMap<String, Serializable>();
 		rowKey = 1;
 		rows.put("row key " + rowKey, cols);
 		
@@ -56,7 +57,7 @@ public class CriteriaImplTest {
 		cols.put("col " + colKey, "z");
 		
 		
-		cols = new LinkedHashMap<String, String>();
+		cols = new LinkedHashMap<String, Serializable>();
 		rowKey = 1000;
 		rows.put("row key " + rowKey, cols);
 		
@@ -64,7 +65,7 @@ public class CriteriaImplTest {
 		cols.put("col " + colKey, "A");
 		
 		
-		cols = new LinkedHashMap<String, String>();
+		cols = new LinkedHashMap<String, Serializable>();
 		rowKey = 3;
 		rows.put("row key " + rowKey, cols);
 		
@@ -72,7 +73,7 @@ public class CriteriaImplTest {
 		cols.put("col " + colKey, "c");
 		
 		
-		cols = new LinkedHashMap<String, String>();
+		cols = new LinkedHashMap<String, Serializable>();
 		rowKey = 101;
 		rows.put("row key " + rowKey, cols);
 		
@@ -80,7 +81,7 @@ public class CriteriaImplTest {
 		cols.put("col " + colKey, "1");
 		
 		
-		cols = new LinkedHashMap<String, String>();
+		cols = new LinkedHashMap<String, Serializable>();
 		rowKey = 100;
 		rows.put("row key " + rowKey, cols);
 		

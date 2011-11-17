@@ -124,7 +124,7 @@ public class ApolloListImpl<T> implements ApolloList<T> {
 						ret = (T) Util.getNativeValueFromString(parameter_type, currentKey);
 					}
 					else {
-						String idValue = cf.getColumnValue(rowKey, currentKey);
+						String idValue = (String) cf.getColumnValue(rowKey, currentKey);
 						
 						ret = (T) session.find(parameter_type, idValue);
 					}

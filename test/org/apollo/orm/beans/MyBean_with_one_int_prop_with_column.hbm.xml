@@ -8,7 +8,7 @@
             <generator class="native"/>
         </id>
 
-		<property name="intPropWithColumn" column="justAnotherCustomColumn" />
+		<property name="intPropWithColumn" column="intPropWithCustomColumn" />
 
     </class>
 </hibernate-mapping>

@@ -7,16 +7,23 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.swing.RowFilter.ComparisonType;
+
+import me.prettyprint.cassandra.serializers.LongSerializer;
 import me.prettyprint.hector.api.ddl.ColumnDefinition;
 import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
+import me.prettyprint.hector.api.ddl.ColumnIndexType;
+import me.prettyprint.hector.api.ddl.ColumnType;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
 
+import org.apache.cassandra.db.marshal.LongType;
 import org.apache.log4j.Logger;
 import org.apollo.orm.CassandraColumnFamilyWrapper;
 import org.apollo.orm.CassandraKeyspaceWrapper;
@@ -89,7 +96,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 
 	@Test
-	public void testInsertGetColumn() {
+	public void testInsertGetColumn() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -185,6 +192,46 @@ public class TestCassandraColumnFamilyWrapperMethods {
 		cf.setTIMEUUIDComparator();
 		
 		assertEquals(ComparatorType.TIMEUUIDTYPE, cf.getComparator());
+	}
+	
+	@Test
+	public void testUpdateColumnFamilyMetaData() throws Exception {
+		String someCF = "someCF";
+		
+		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
+		
+		if (!keyspaceWrapper.doesColumnFamilyExist(someCF))
+			cf.createColumnFamily();
+		else
+			cf.truncate();
+		
+		cf.updateColumnFamilyMetaData("col1", null, LongType.instance);
+		
+		assertEquals(LongSerializer.get(), cf.getColumnSerializer("col1", true));
+		
+		Object[][] data = {{"key1", "col1", 1l}, {"key2", "col1", 5l}
+							, {"key3", "col1", 55l}, {"key4", "col1", 8l}
+							, {"key5", "col1", Long.MIN_VALUE}, {"key6", "col1", Long.MAX_VALUE}
+							};
+		
+		for (Object[] objects : data) {
+			String rowKey = (String) objects[0];
+			String colKey = (String) objects[1];
+			long val = (Long) objects[2];
+			
+			cf.insertColumn(rowKey, colKey, val);
+			cf.insertColumn(rowKey, "__rstat__", 0);
+		}
+		
+		for (Object[] objects : data) {
+			String rowKey = (String) objects[0];
+			String colKey = (String) objects[1];
+			Long exp_val = (Long) objects[2];
+			
+			Long val = (Long) cf.getColumnValue(rowKey, colKey);
+			
+			assertEquals(exp_val, val);
+		}
 	}
 
 	@Test
@@ -447,7 +494,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 	
 	@Test
-	public void testGetMultipleColumns() {
+	public void testGetMultipleColumns() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -479,7 +526,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 
 	@Test
-	public void testGetRowsWithMultipleKeysStringArrayStringStringInt() {
+	public void testGetRowsWithMultipleKeysStringArrayStringStringInt() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -563,7 +610,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 
 	@Test
-	public void testGetRowsWithMultipleKeysStringArray() {
+	public void testGetRowsWithMultipleKeysStringArray() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -613,7 +660,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 
 	@Test
-	public void testDeleteRow() {
+	public void testDeleteRow() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -639,7 +686,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 
 	@Test
-	public void testGetColumnsAsMap() {
+	public void testGetColumnsAsMap() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -653,16 +700,16 @@ public class TestCassandraColumnFamilyWrapperMethods {
 		int maxRows = 25;
 		int maxCols = 25;
 		
-		Map<String, Map<String, String>> values = new LinkedHashMap<String, Map<String,String>>();
+		Map<String, Map<String, Serializable>> values = new LinkedHashMap<String, Map<String,Serializable>>();
 		
 		for (int i = 0; i < maxRows; i++) {
 			String key = "key_" + i;
 			
-			Map<String, String> _columns = new LinkedHashMap<String, String>();
+			Map<String, Serializable> _columns = new LinkedHashMap<String, Serializable>();
 			
 			for (int j = 0; j < maxCols; j++) {
 				String col = "col_" + j;
-				String val = "val_" + j;
+				Serializable val = "val_" + j;
 				
 				_columns.put(col, val);
 				
@@ -690,7 +737,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 			rowsFound = 0;
 			startCol = "";
 			
-			Map<String, Map<String, String>> rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2, maxRows2);
+			Map<String, Map<String, Serializable>> rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2, maxRows2);
 			
 			for (String rowKey : rows.keySet()) {
 				
@@ -698,9 +745,9 @@ public class TestCassandraColumnFamilyWrapperMethods {
 				rowsFound++;
 				startKey = rowKey;
 				
-				Map<String, String> cols = rows.get(rowKey);
+				Map<String, Serializable> cols = rows.get(rowKey);
 				
-				Map<String, String> _cols = values.get(rowKey);
+				Map<String, Serializable> _cols = values.get(rowKey);
 
 				do {
 					colsFound = 0;
@@ -723,7 +770,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 					}
 					
 					if (colsFound >= maxCols2) {
-						Map<String, Map<String, String>> _rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2, maxRows2 + 1);
+						Map<String, Map<String, Serializable>> _rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2, maxRows2 + 1);
 						cols = _rows.get(rowKey);
 					}
 				} while (colsFound >= maxCols2);
@@ -756,7 +803,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 
 	@Test
-	public void testGetColumnsWithHandler() {
+	public void testGetColumnsWithHandler() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -826,7 +873,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 			do {
 				c.tmpRowCount = 0;
 
-				cf.getColumns(c.startKey, endKey, c.startCol, endColumn, maxCols2 + 1, c.maxRows, new GetColumnsHandlerAdapter() {
+				cf.getColumns(c.startKey, endKey, c.startCol, endColumn, maxCols2 + 1, c.maxRows, null, new GetColumnsHandlerAdapter() {
 					private int skipRows;
 					private int skipCols;
 					private Map<String, String> cols;
@@ -867,7 +914,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 					}
 
 					@Override
-					public void onColumn(String col, String val) {
+					public void onColumn(String col, Serializable val) {
 						c.tmpColCount++;
 
 						//c.startCol = col;
@@ -1048,7 +1095,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 	}
 	
 	@Test
-	public void testSaveRowsAndColumns() {
+	public void testSaveRowsAndColumns() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspaceWrapper.getCassandraColumnFamilyWrapper(someCF);
@@ -1058,7 +1105,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 		
 		cf.createColumnFamily();
 		
-		Map<String, Map<String, String>> values = new LinkedHashMap<String, Map<String,String>>();
+		Map<String, Map<String, Serializable>> values = new LinkedHashMap<String, Map<String,Serializable>>();
 		
 		int maxRows = 25;
 		int maxCols = 25;
@@ -1066,7 +1113,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 		for (int i = 0; i < maxRows; i++) {
 			String key = "key_" + i;
 			
-			Map<String, String> cols = new LinkedHashMap<String, String>();
+			Map<String, Serializable> cols = new LinkedHashMap<String, Serializable>();
 			
 			values.put(key, cols);
 			
@@ -1098,7 +1145,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 			rowsFound = 0;
 			startCol = "";
 			
-			Map<String, Map<String, String>> rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2, maxRows2);
+			Map<String, Map<String, Serializable>> rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2, maxRows2);
 			
 			for (String rowKey : rows.keySet()) {
 				
@@ -1106,9 +1153,9 @@ public class TestCassandraColumnFamilyWrapperMethods {
 				rowsFound++;
 				startKey = rowKey;
 				
-				Map<String, String> cols = rows.get(rowKey);
+				Map<String, Serializable> cols = rows.get(rowKey);
 				
-				Map<String, String> _cols = values.get(rowKey);
+				Map<String, Serializable> _cols = values.get(rowKey);
 
 				do {
 					colsFound = 0;
@@ -1131,7 +1178,7 @@ public class TestCassandraColumnFamilyWrapperMethods {
 					}
 					
 					if (colsFound >= maxCols2) {
-						Map<String, Map<String, String>> _rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2 + 1, maxRows2 + 1);
+						Map<String, Map<String, Serializable>> _rows = cf.getColumnsAsMap(startKey, endKey, startCol, endCol, maxCols2 + 1, maxRows2 + 1);
 						cols = _rows.get(rowKey);
 					}
 				} while (colsFound >= maxCols2);

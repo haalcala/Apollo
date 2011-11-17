@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.Properties;
 
 import me.prettyprint.hector.api.Keyspace;
@@ -146,7 +147,7 @@ public class TestCassandraKeyspaceWrapper implements TestConstants {
 	}
 
 	@Test
-	public void testTruncateColumnFamily() {
+	public void testTruncateColumnFamily() throws Exception {
 		String someCF = "someCF";
 		
 		CassandraColumnFamilyWrapper cf = keyspace.createColumnFamily(someCF);
@@ -200,7 +201,7 @@ public class TestCassandraKeyspaceWrapper implements TestConstants {
 	}
 	
 	@Test
-	public void testDataOrdering() {
+	public void testDataOrdering() throws Exception {
 		String cfWithAsciiComparator = "cfWithAsciiComparator";
 		
 		CassandraColumnFamilyWrapper cf = keyspace.getCassandraColumnFamilyWrapper(cfWithAsciiComparator);
@@ -227,7 +228,7 @@ public class TestCassandraKeyspaceWrapper implements TestConstants {
 			}
 		}
 		
-		cf.getColumns("", "", "", "", maxCols, maxRows, new GetColumnsHandlerAdapter() {
+		cf.getColumns("", "", "", "", maxCols, maxRows, null, new GetColumnsHandlerAdapter() {
 
 			@Override
 			public boolean scanAllRows() {
@@ -250,7 +251,7 @@ public class TestCassandraKeyspaceWrapper implements TestConstants {
 			}
 
 			@Override
-			public void onColumn(String key, String val) {
+			public void onColumn(String key, Serializable val) {
 				super.onColumn(key, val);
 			}
 

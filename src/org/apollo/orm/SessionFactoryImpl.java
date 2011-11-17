@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,20 +12,30 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import me.prettyprint.cassandra.serializers.IntegerSerializer;
+import me.prettyprint.cassandra.serializers.LongSerializer;
 import me.prettyprint.cassandra.service.ThriftCluster;
+import me.prettyprint.hector.api.Cluster;
+import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.ddl.ColumnIndexType;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 import net.sf.ehcache.CacheManager;
 
+import org.apache.cassandra.db.marshal.IntegerType;
 import org.apache.cassandra.db.marshal.TimeUUIDType;
-import org.apache.log4j.Logger;
 import org.jdom.Attribute;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
-	private Logger logger = Logger.getLogger(SessionFactoryImpl.class);
+	public static final String ATTR_TYPE = "type";
+
+	private Logger logger = LoggerFactory.getLogger(SessionFactoryImpl.class);
+	
+	org.slf4j.Logger log = LoggerFactory.getLogger(getClass());
 	
 	Map<Class<?>, ClassConfig> classToClassConfig;
 	
@@ -62,7 +73,7 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 			List<?> contents = document.getContent();
 			
 			for (Object object : contents) {
-				if (logger.isDebugEnabled()) logger.debug(object.getClass());
+				if (logger.isDebugEnabled()) logger.debug("{}", object.getClass());
 				
 				if (object instanceof Element) {
 					Element element = (Element) object;
@@ -84,7 +95,7 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 									
 									for (Object object3 : attributes2) {
 										if (logger.isDebugEnabled()) 
-											logger.debug(object3);
+											logger.debug("{}", object3);
 										
 										if (object3 instanceof Attribute) {
 											Attribute attribute = (Attribute) object3;
@@ -243,34 +254,6 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 				return;
 			
 			for (ClassConfig cc : classToClassConfig.values()) {
-				CassandraColumnFamilyWrapper cf = getCassandraColumnFamilyWrapper(cc.cfName);
-				
-				if (!cf.columnFamilyExists())
-					cf.createColumnFamily();
-				
-				if (logger.isDebugEnabled())
-					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed(SYS_COL_RSTAT));
-				
-				if (!cf.isColumnIndexed(SYS_COL_RSTAT))
-					cf.updateColumnFamilyMetaData(SYS_COL_RSTAT, ColumnIndexType.KEYS, ComparatorType.UTF8TYPE);
-
-				Set<String> methods = cc.getMethods();
-				
-				if (methods != null) {
-					for (String prop : methods) {
-						String table = cc.getMethodConfig(prop).get(ATTR_TABLE);
-						
-						if (table != null) {
-							cf = getCassandraColumnFamilyWrapper(table);
-
-							if (!cf.columnFamilyExists())
-								cf.createColumnFamily();
-						}
-					}
-				}
-			}
-			
-			for (ClassConfig cc : classToClassConfig.values()) {
 				Method[] methods = cc.clazz.getMethods();
 				
 				Set<String> props = cc.getMethods();
@@ -310,7 +293,7 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 						if (get_method_type != set_method_type)
 							throw new IllegalAccessException("The 'get' and 'set' access methods for property '" + prop + "' of class '" + cc.clazz + "' must be of the same type");
 
-						if (method_config.get("type") == null) {
+						if (method_config.get(ATTR_TYPE) == null) {
 							String method_type = get_method_type.getCanonicalName();
 
 							if (get_method_type.isPrimitive())
@@ -351,34 +334,93 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 								}
 							}
 
-							method_config.put("type", method_type);
+							method_config.put(ATTR_TYPE, method_type);
 						}
 
 						if (cc.propertyType == null)
 							cc.propertyType = new HashMap<String, Class<?>>();
+						
+						if (logger.isDebugEnabled())
+							logger.debug("The property '{}' is deteremined to be of type '{}'", prop, get_method_type);
 
 						cc.propertyType.put(prop, get_method_type);
-
-
-						/*
-						 * Determine if such a class should be proxied.
-						 */
-						String lazy_loaded = method_config.get(ATTR_LAZY_LOADED);
-						if (lazy_loaded != null && lazy_loaded.equalsIgnoreCase("true")) {
-							cc.shouldProxy = true;
-
-							if (cc.proxyMethods == null)
-								cc.proxyMethods = new ArrayList<Method>();
-
-							cc.proxyMethods.add(cc.getGetMethodFromCache(prop));
-							cc.proxyMethods.add(cc.getSetMethodFromCache(prop));
-						}
 
 						if (cc.methodToProp == null)
 							cc.methodToProp = new HashMap<String, String>();
 
 						cc.methodToProp.put(SessionImpl.getGetMethodFromProperty(prop), prop);
 						cc.methodToProp.put(SessionImpl.getSetMethodFromProperty(prop), prop);
+					}
+				}
+			}
+
+			/*
+			 * Create/Update Schema
+			 */
+			logger.info("............................. Creating/Updating schema .............................");
+			
+			for (ClassConfig cc : classToClassConfig.values()) {
+				CassandraColumnFamilyWrapper cf = getCassandraColumnFamilyWrapper(cc.cfName);
+
+				if (!cf.columnFamilyExists())
+					cf.createColumnFamily();
+
+				if (logger.isDebugEnabled())
+					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed(SYS_COL_RSTAT));
+
+				if (!cf.isColumnIndexed(SYS_COL_RSTAT))
+					cf.updateColumnFamilyMetaData(SYS_COL_RSTAT, ColumnIndexType.KEYS, IntegerType.instance);
+
+				Set<String> methods = cc.getMethods();
+
+				if (methods != null) {
+					for (String prop : methods) {
+						String table = cc.getMethodConfig(prop).get(ATTR_TABLE);
+
+						if (table != null) {
+							cf = getCassandraColumnFamilyWrapper(table);
+
+							if (!cf.columnFamilyExists())
+								cf.createColumnFamily();
+						}
+						
+						Class<?> prop_type = cc.getPropertyType(prop);
+						
+						String column = cc.getMethodColumn(prop, false);
+						
+						Serializer<?> storage_serializer = cf.getColumnSerializer(column, false);
+						
+						log.info("Property: '" + prop + "' column: '" + column + "' propertyType: '" + prop_type + "' storageType: '" + storage_serializer + "'");
+
+						if (Util.isNativelySupported(prop_type)) {
+							if (storage_serializer == null) {
+								cf.updateColumnFamilyMetaData(column, null, Util.getJavaTypeToCassandraType(prop_type));
+							}
+							else {
+								Serializer<?> exp_serializer = Util.getJavaTypeSerialiser(prop_type);
+
+								if (exp_serializer != storage_serializer) {
+									if (prop_type == Integer.TYPE) {
+									}
+									else if (prop_type == Long.TYPE) {
+									}
+									else if (prop_type == Boolean.TYPE) {
+									}
+									else if (prop_type == Double.TYPE) {
+									}
+									else if (prop_type == Float.TYPE) {
+									}
+									else if (prop_type == Byte.TYPE) {
+									}
+									else if (prop_type == Character.class) {
+									}
+									else if (prop_type == String.class) {
+									}
+									else if (prop_type == Timestamp.class) {
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -413,7 +455,7 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 
 	public void shutdown() {
 		if (keyspaceWrapper != null) {
-			ThriftCluster cluster = keyspaceWrapper.getCluster();
+			Cluster cluster = keyspaceWrapper.getCluster();
 			
 			cluster.getConnectionManager().shutdown();
 		}

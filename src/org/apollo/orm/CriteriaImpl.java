@@ -1,5 +1,6 @@
 package org.apollo.orm;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -64,7 +65,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 			else {
 				add(Expression.eq(SYS_COL_RSTAT, "0"));
 				
-				Map<String, Map<String, String>> rows = cf.findColumnWithValue(criterias, session, cc, cc.getColumnsAsList());
+				Map<String, Map<String, Serializable>> rows = cf.findColumnWithValue(criterias, session, cc, cc.getColumnsAsList());
 				
 				if (rows != null && rows.size() > 0) {
 					List<String> orderedKeys = null;
@@ -83,7 +84,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 						if (rowKey.startsWith(SYS_APOLLO_SYMBOL_PREFIX))
 							continue;
 						
-						Map<String, String> cols = rows.get(rowKey);
+						Map<String, Serializable> cols = rows.get(rowKey);
 						
 						Object object = session.colsToObject(rowKey, cols, cc, null);
 						
@@ -100,10 +101,10 @@ public class CriteriaImpl<T> implements Criteria<T> {
 		}
 	}
 
-	static List<String> getOrderedKeys(List<Order> orders, Map<String, Map<String, String>> rows) {
+	static List<String> getOrderedKeys(List<Order> orders, Map<String, Map<String, Serializable>> rows) {
 		List<String> orderedKeys = null;
 		
-		Map<String, Object> tmp = new TreeMap<String, Object>();
+		Map<Serializable, Serializable> tmp = new TreeMap<Serializable, Serializable>();
 		
 		int order_col_count = orders.size();
 		
@@ -111,23 +112,23 @@ public class CriteriaImpl<T> implements Criteria<T> {
 			logger.debug("order_col_count: " + order_col_count);
 		
 		for (String rowKey : rows.keySet()) {
-			Map<String, String> cols = rows.get(rowKey);
+			Map<String, Serializable> cols = rows.get(rowKey);
 			
 			if (logger.isDebugEnabled())
 				logger.debug("cols: " + cols);
 			
-			Map<String, Object> tmp2 = tmp;
+			Map<Serializable, Serializable> tmp2 = tmp;
 			
 			int ordersc = 0;
 			
 			for (Order order : orders) {
-				String value = cols.get(order.getColumn());
+				Serializable value = cols.get(order.getColumn());
 				
 				Object object = tmp2.get(value);
 				
 				if (object == null) {
 					if (ordersc < order_col_count - 1) {
-						TreeMap<String, Object> treeMap = new TreeMap<String, Object>();
+						TreeMap<Serializable, Serializable> treeMap = new TreeMap<Serializable, Serializable>();
 						
 						tmp2.put(value, treeMap);
 						
@@ -145,7 +146,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 				}
 				else {
 					if (ordersc < order_col_count - 1) {
-						tmp2 = (Map<String, Object>) object;
+						tmp2 = (Map<Serializable, Serializable>) object;
 					}
 					else {
 						tmp2.put(value, rowKey);
@@ -160,14 +161,14 @@ public class CriteriaImpl<T> implements Criteria<T> {
 		}
 		
 		int ordersc = 0;
-		Stack<Iterator<String>> keyStack = new Stack<Iterator<String>>();
-		Stack<Map<String, Object>> mapStack = new Stack<Map<String,Object>>();
+		Stack<Iterator<Serializable>> keyStack = new Stack<Iterator<Serializable>>();
+		Stack<Map<Serializable, Serializable>> mapStack = new Stack<Map<Serializable,Serializable>>();
 		
 		keyStack.push(tmp.keySet().iterator());
 		mapStack.push(tmp);
 		
-		Iterator<String> it = null;
-		Map<String, Object> map = null;
+		Iterator<Serializable> it = null;
+		Map<Serializable, Serializable> map = null;
 		
 		int order_depth = 0;
 		
@@ -177,7 +178,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 			it = keyStack.peek();
 			map = mapStack.peek();
 			
-			String key = it.next();
+			Serializable key = it.next();
 			
 			if (logger.isDebugEnabled())
 				logger.debug("inspecting key: '" + key + "' map: " + map.hashCode());
@@ -186,7 +187,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 			
 			if (o instanceof Map) {
 				keyStack.push(((Map) o).keySet().iterator());
-				mapStack.push((Map<String, Object>) o);
+				mapStack.push((Map<Serializable, Serializable>) o);
 				continue;
 			}
 			else {

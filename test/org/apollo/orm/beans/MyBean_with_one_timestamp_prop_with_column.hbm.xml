@@ -8,7 +8,7 @@
             <generator class="native"/>
         </id>
 
-		<property name="timestampPropWithColumn" column="justAnotherCustomColumn" />
+		<property name="timestampPropWithColumn" column="timestampPropCustomColumn" />
 
     </class>
 </hibernate-mapping>

@@ -15,31 +15,33 @@ import java.util.Properties;
 
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 
-import org.apache.log4j.Logger;
+import org.apollo.orm.TestConstants.Util;
 import org.apollo.orm.beans.MyBean;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Harold Alcala
  * asdfasdfsadf
  */
 public class SessionFactoryImpl_Functionality_Test {
-	static Logger logger = Logger.getLogger(SessionFactoryImpl_Functionality_Test.class);
+	static Logger logger = LoggerFactory.getLogger(SessionFactoryImpl_Functionality_Test.class);
 	
 	Configurator configurator;
 	SessionFactory factory;
 	Session session;
 
-	Properties conf = new Properties();
+	Properties conf = Util.getTestConf();
 	
 	String path_bean_xml;
 	
 	public SessionFactoryImpl_Functionality_Test() throws Exception {
-		conf.load(ClassLoader.getSystemResourceAsStream("apollo.conf"));
+		// conf.load(ClassLoader.getSystemResourceAsStream("apollo.conf"));
 	}
 
 	@BeforeClass
@@ -199,6 +201,8 @@ public class SessionFactoryImpl_Functionality_Test {
 		values.add(new Timestamp((ctm % 1000) * 1000));
 
 		testProp("timestampProp", Timestamp.class, values);
+		
+		
 	}
 	
 	@Test

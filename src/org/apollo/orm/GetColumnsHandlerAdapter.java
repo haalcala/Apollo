@@ -1,5 +1,7 @@
 package org.apollo.orm;
 
+import java.io.Serializable;
+
 public class GetColumnsHandlerAdapter implements
 		GetColumnsHandler {
 
@@ -17,7 +19,7 @@ public class GetColumnsHandlerAdapter implements
 	public void onEndRow(String rowKey) {
 	}
 
-	public void onColumn(String key, String val) {
+	public void onColumn(String key, Serializable val) {
 	}
 
 	public int getColumnsPerRequest() {

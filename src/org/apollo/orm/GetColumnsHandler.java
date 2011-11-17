@@ -1,5 +1,7 @@
 package org.apollo.orm;
 
+import java.io.Serializable;
+
 public interface GetColumnsHandler {
 	boolean scanAllRows();
 	
@@ -9,7 +11,7 @@ public interface GetColumnsHandler {
 	
 	void onEndRow(String rowKey);
 	
-	void onColumn(String key, String val);
+	void onColumn(String key, Serializable val);
 
 	int getColumnsPerRequest();
 

@@ -1,12 +1,13 @@
 package org.apollo.orm;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.CassandraHostConfigurator;
-import me.prettyprint.cassandra.service.ThriftCluster;
 import me.prettyprint.cassandra.service.ThriftKsDef;
+import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.ddl.ColumnDefinition;
@@ -18,13 +19,15 @@ import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
 
 import org.apache.log4j.Logger;
+import org.apollo.orm.ApolloConstants.Util;
 
 
 public class CassandraKeyspaceWrapper {
 	public static final String CONF_CLUSTER_HOST = "cluster.host";
-	public static final String CONF_CLUSTER_NAME= "cluster.name";
-	public static final String CONF_CLUSTER_MAXACTIVE= "cluster.maxActive";
-	public static final String CONF_CLUSTER_MAXIDLE= "cluster.maxIdle";
+	public static final String CONF_CLUSTER_NAME = "cluster.name";
+	public static final String CONF_CLUSTER_MAXACTIVE = "cluster.maxActive";
+	public static final String CONF_CLUSTER_MAXIDLE = "cluster.maxIdle";
+	public static final String CONF_CLUSTER_AUTO_DISCOVER_HOSTS = "cluster.autoDiscoverHosts";
 	public static final String CONF_CLUSTER_THRIFT_SOCKET_TIMEOUT = "cluster.cassandraThriftSocketTimeout";
 	public static final String CONF_CLUSTER_WAIT_TIMEOUT_WHEN_EXHAUSTED = "cluster.maxWaitTimeWhenExhausted";
 	public static final String CONF_KEYSPACE = "keyspace";
@@ -43,7 +46,7 @@ public class CassandraKeyspaceWrapper {
 	
 	private Keyspace keyspace;
 
-	private ThriftCluster cluster;
+	private Cluster cluster;
 
 	private Properties config;
 	
@@ -68,33 +71,48 @@ public class CassandraKeyspaceWrapper {
 		
 		keyspace_name = keyspace;
 		
-		int clusterMaxActive = getIntValue(config, CONF_CLUSTER_MAXACTIVE, 30);
-		int clusterMaxIdle = getIntValue(config, CONF_CLUSTER_MAXIDLE, 5);
+		int clusterMaxActive = getIntValue(config, CONF_CLUSTER_MAXACTIVE, 30) * 10;
+		// int clusterMaxIdle = getIntValue(config, CONF_CLUSTER_MAXIDLE, 5);
 		int cassandraThriftSocketTimeout = getIntValue(config, CONF_CLUSTER_THRIFT_SOCKET_TIMEOUT, 3000);
 		int maxWaitTimeWhenExhausted = getIntValue(config, CONF_CLUSTER_WAIT_TIMEOUT_WHEN_EXHAUSTED, 4000);
 		String cache_conf = config.getProperty(CONF_CACHE_CONF);
+		boolean auto_discover_hosts = Util.getBooleanValue(config.getProperty(CONF_CLUSTER_AUTO_DISCOVER_HOSTS), false);
 		
 		logger.debug("host: " + host);
 		logger.debug("clustername: " + clustername);
-		logger.debug("clusterMaxActive: " + clusterMaxActive);
-		logger.debug("clusterMaxIdle: " + clusterMaxIdle);
+		logger.debug("clusterMaxActive: " + clusterMaxActive * 10);
+		// logger.debug("clusterMaxIdle: " + clusterMaxIdle);
 		logger.debug("cassandraThriftSocketTimeout: " + cassandraThriftSocketTimeout);
 		logger.debug("maxWaitTimeWhenExhausted: " + maxWaitTimeWhenExhausted);
 		logger.debug("cache_conf: " + cache_conf);
 		logger.debug("keyspace_name: " + keyspace_name);
 		
-		CassandraHostConfigurator cassandraHostConfigurator = new CassandraHostConfigurator(host);
+		CassandraHostConfigurator cassandraHostConfigurator = new CassandraHostConfigurator();
 		
+		cassandraHostConfigurator.setHosts(host);
 		cassandraHostConfigurator.setMaxActive(clusterMaxActive);
-		cassandraHostConfigurator.setMaxIdle(clusterMaxIdle);
+		//cassandraHostConfigurator.setMaxIdle(clusterMaxIdle);
+		//cassandraHostConfigurator.setRetryDownedHosts(true);
 		cassandraHostConfigurator.setCassandraThriftSocketTimeout(cassandraThriftSocketTimeout);
 		cassandraHostConfigurator.setMaxWaitTimeWhenExhausted(maxWaitTimeWhenExhausted);	
 		
-		cassandraHostConfigurator.setAutoDiscoverHosts(true);
+		cassandraHostConfigurator.setAutoDiscoverHosts(auto_discover_hosts);
 		
-		cluster = new ThriftCluster(clustername, cassandraHostConfigurator);
+		cassandraHostConfigurator.setRetryDownedHosts(false);
+		
+		cluster = HFactory.createCluster(clustername, cassandraHostConfigurator);
+		
+		if (logger.isDebugEnabled())
+			logger.debug("Cluster: " + cluster);
+		
+		//cluster = new ThriftCluster(clustername, cassandraHostConfigurator);
+		
+		//cluster.getKnownPoolHosts(true);
 		
 		this.keyspace = HFactory.createKeyspace(keyspace, cluster);
+		
+		logger.debug("Describing cluster ...");
+		logger.debug(cluster.describeKeyspace(keyspace));
 		
 		if (cacheManager == null && cache_conf != null) {
 			cacheManager = new CacheManager(cache_conf);
@@ -151,7 +169,7 @@ public class CassandraKeyspaceWrapper {
 		return ret;
 	}
 	
-	public ThriftCluster getCluster() {
+	public Cluster getCluster() {
 		return cluster;
 	}
 	
@@ -240,7 +258,7 @@ public class CassandraKeyspaceWrapper {
 		return doesKeyspaceExist(cluster, keyspace);
 	}
 	
-	public static boolean doesKeyspaceExist(ThriftCluster cluster, String keyspace) {
+	public static boolean doesKeyspaceExist(Cluster cluster, String keyspace) {
 		List<KeyspaceDefinition> keyspaces = getKeyspacesDefinition(cluster, keyspace);
 		
 		for (KeyspaceDefinition kd : keyspaces) {
@@ -251,7 +269,7 @@ public class CassandraKeyspaceWrapper {
 		return false;
 	}
 
-	static List<KeyspaceDefinition> getKeyspacesDefinition(ThriftCluster cluster, String keyspace) {
+	static List<KeyspaceDefinition> getKeyspacesDefinition(Cluster cluster, String keyspace) {
 		List<KeyspaceDefinition> keyspaces = null;
 		
 		Cache cache = null;

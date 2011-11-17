@@ -38,6 +38,7 @@ public class MyInterceptor implements MethodInterceptor {
 			MethodProxy methodProxy) throws Throwable {
 		Object res = null;
 
+		/*
 		if (classConfig.proxyMethods != null && classConfig.proxyMethods.contains(method)) {
 			String prop = classConfig.methodToProp.get(method.getName());
 
@@ -139,7 +140,7 @@ public class MyInterceptor implements MethodInterceptor {
 		}
 		else {
 			res = method.invoke(realObj, objects);
-		}
+		}*/
 
 		return res;
 	}   
