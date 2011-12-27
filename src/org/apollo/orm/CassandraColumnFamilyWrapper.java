@@ -24,7 +24,6 @@ import me.prettyprint.cassandra.serializers.IntegerSerializer;
 import me.prettyprint.cassandra.serializers.LongSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.serializers.TimeUUIDSerializer;
-import me.prettyprint.cassandra.serializers.TypeInferringSerializer;
 import me.prettyprint.cassandra.service.ThriftCfDef;
 import me.prettyprint.cassandra.service.ThriftColumnDef;
 import me.prettyprint.hector.api.Cluster;
@@ -61,6 +60,7 @@ import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.thrift.ColumnDef;
 import org.apache.cassandra.thrift.IndexType;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.thrift.TException;
 import org.apollo.orm.ApolloConstants.Util;
@@ -184,7 +184,7 @@ public class CassandraColumnFamilyWrapper {
 				keyspaceWrapper.getCluster().addColumnFamily(thriftCfDef);
 			} catch (HectorException e1) {
 				if (e1.getMessage().indexOf(STR_CLUSTER_SCHEMA_DOES_NOT_YET_AGREE) == -1 
-						&& e1.getMessage().indexOf(STR_CF_ALREADY_DEFINED) == -1)
+						&& e1.getMessage().indexOf(STR_CF_ALREADY_DEFINED) == -1 && !(e1.getCause() instanceof SchemaDisagreementException))
 					throw e1;
 				
 				if (logger.isDebugEnabled())
@@ -278,7 +278,7 @@ public class CassandraColumnFamilyWrapper {
 				columnDefinition.setName(StringSerializer.get().toByteBuffer(column));
 				
 				if (indexType == ColumnIndexType.KEYS) {
-					//columnDefinition.setIndexName(column);
+					columnDefinition.setIndexName(column);
 					columnDefinition.setIndexType(indexType);
 				}
 				
@@ -296,14 +296,15 @@ public class CassandraColumnFamilyWrapper {
 
 				do {
 					try {
-						cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition), true);
+						cassandraCluster.updateColumnFamily(new ThriftCfDef(columnFamilyDefinition));
 
 						if (logger.isDebugEnabled())
 							logger.debug("Succesfully added column index for column '" + column + "'");
 						
 						ready = true;
 					} catch (Exception e) {
-						if (e.getMessage().indexOf("Cluster schema does not yet agree") > -1) {
+						if (e.getMessage().indexOf("Cluster schema does not yet agree") > -1
+								|| (e.getCause() instanceof SchemaDisagreementException)) {
 							if (logger.isDebugEnabled())
 								logWarn("Cluster schema does not yet agree");
 							

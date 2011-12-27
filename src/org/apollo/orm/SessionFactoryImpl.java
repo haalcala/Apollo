@@ -12,13 +12,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import me.prettyprint.cassandra.serializers.IntegerSerializer;
-import me.prettyprint.cassandra.serializers.LongSerializer;
-import me.prettyprint.cassandra.service.ThriftCluster;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.ddl.ColumnIndexType;
-import me.prettyprint.hector.api.ddl.ComparatorType;
 import net.sf.ehcache.CacheManager;
 
 import org.apache.cassandra.db.marshal.IntegerType;
@@ -34,8 +30,6 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 	public static final String ATTR_TYPE = "type";
 
 	private Logger logger = LoggerFactory.getLogger(SessionFactoryImpl.class);
-	
-	org.slf4j.Logger log = LoggerFactory.getLogger(getClass());
 	
 	Map<Class<?>, ClassConfig> classToClassConfig;
 	
@@ -256,6 +250,8 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 			for (ClassConfig cc : classToClassConfig.values()) {
 				Method[] methods = cc.clazz.getMethods();
 				
+				cc.setKeyspaceName(keyspaceWrapper.getKeyspaceName());
+
 				Set<String> props = cc.getMethods();
 
 				if (props != null) {
@@ -366,10 +362,10 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 					cf.createColumnFamily();
 
 				if (logger.isDebugEnabled())
-					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed(SYS_COL_RSTAT));
+					logger.debug(cc.cfName + " : cf.isColumnIndexed(\"__rstat__\"): " + cf.isColumnIndexed(cc.getRStatColumnName()));
 
-				if (!cf.isColumnIndexed(SYS_COL_RSTAT))
-					cf.updateColumnFamilyMetaData(SYS_COL_RSTAT, ColumnIndexType.KEYS, IntegerType.instance);
+				if (!cf.isColumnIndexed(cc.getRStatColumnName()))
+					cf.updateColumnFamilyMetaData(cc.getRStatColumnName(), ColumnIndexType.KEYS, IntegerType.instance);
 
 				Set<String> methods = cc.getMethods();
 
@@ -390,7 +386,7 @@ public class SessionFactoryImpl implements SessionFactory, ApolloConstants {
 						
 						Serializer<?> storage_serializer = cf.getColumnSerializer(column, false);
 						
-						log.info("Property: '" + prop + "' column: '" + column + "' propertyType: '" + prop_type + "' storageType: '" + storage_serializer + "'");
+						logger.debug("Property: '" + prop + "' column: '" + column + "' propertyType: '" + prop_type + "' storageType: '" + storage_serializer + "'");
 
 						if (Util.isNativelySupported(prop_type)) {
 							if (storage_serializer == null) {

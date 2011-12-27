@@ -48,6 +48,8 @@ class ClassConfig implements ApolloConstants {
 	List<String> mapOfMaps;
 
 	private ArrayList<String> colsAsArray;
+
+	private String keyspaceName;
 	
 	Serializable getIdValue(Object instance) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		Serializable ret = null;
@@ -372,6 +374,22 @@ class ClassConfig implements ApolloConstants {
 		}
 		
 		return null;
+	}
+	
+	public void setKeyspaceName(String keyspaceName) {
+		this.keyspaceName = keyspaceName;
+	}
+	
+	public String getRStatColumnName() {
+		return getFormattedIndexColumnName("rstat");
+	}
+	
+	public String getFormattedIndexColumnName(String columnName) {
+		return getFormattedIndexColumnName(keyspaceName, cfName, columnName);
+	}
+	
+	public static String getFormattedIndexColumnName(String keyspaceName, String columnFamilyName, String columnName) {
+		return "__" + keyspaceName + "__" + columnFamilyName + "__" + columnName + "__";
 	}
 
 	@Override

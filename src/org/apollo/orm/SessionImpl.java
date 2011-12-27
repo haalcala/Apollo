@@ -1032,7 +1032,7 @@ public class SessionImpl implements Session, ApolloConstants {
 								_cf.insertColumn(rowKey, col, cols.get(col));
 							}
 
-							Serializable _rstat = _cf.getColumnValue(idValue, SYS_COL_RSTAT);
+							Serializable _rstat = _cf.getColumnValue(idValue, cc.getRStatColumnName());
 							
 							int rstat = 0;
 
@@ -1044,7 +1044,7 @@ public class SessionImpl implements Session, ApolloConstants {
 							else if (_rstat != null && _rstat.getClass() == int.class)
 								rstat = (Integer) _rstat;
 								
-							_cf.insertColumn(idValue, SYS_COL_RSTAT, rstat);
+							_cf.insertColumn(idValue, cc.getRStatColumnName(), rstat);
 						}
 					}
 				}

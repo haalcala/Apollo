@@ -77,7 +77,7 @@ public interface ApolloConstants {
 	public static final String METHOD_PREFIX_GET = "get";
 	public static final String METHOD_PREFIX_IS = "is";
 
-	public static final String SYS_COL_RSTAT = "__rstat__";
+	public static final String SYS_COL_RSTAT_ = "__rstat__";
 	
 	public static final String SYS_APOLLO_SYMBOL_PREFIX = "apollo://";
 	

@@ -6,38 +6,40 @@
               as the first entry and export the buildfile again. -->
 <project basedir="." default="build" name="Java - OpenSource - Apollo">
     <property environment="env"/>
-    <property name="ECLIPSE_HOME" value="../../../java/eclipse-3.7-indigo-j2ee 64bit"/>
+    <property name="ECLIPSE_HOME" value="../../../java/eclipse/eclipse-3.7-jee-64-gwt"/>
     <property name="i-POP Analytics - Common.location" value="../../i-POP Analytics/Common"/>
     <property name="junit.output.dir" value="junit"/>
     <property name="debuglevel" value="source,lines,vars"/>
-    <property name="target" value="1.5"/>
-    <property name="source" value="1.5"/>
-    <path id="Apache-Cassandra-0.7.5.userclasspath">
-        <pathelement location="../../../java/apache-cassandra-0.7.5/lib/apache-cassandra-0.7.5.jar"/>
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+    <path id="Apache-Cassandra-1.0.6.userclasspath">
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-1.0.6.jar"/>
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-clientutil-1.0.6.jar"/>
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-thrift-1.0.6.jar"/>
     </path>
-    <path id="Apache-Thrift-0.5.userclasspath">
-        <pathelement location="../../../java/apache-cassandra-0.7.5/lib/libthrift-0.5.jar"/>
-    </path>
+    <path id="Apache-Thrift-0.6.userclasspath"/>
     <path id="AspectJ-1.6.11.userclasspath">
         <pathelement location="../../../java/aspectj1.6/lib/aspectjrt.jar"/>
         <pathelement location="../../../java/aspectj1.6/lib/aspectjtools.jar"/>
-        <pathelement location="../../../java/aspectj1.6/lib/aspectjweaver.jar"/>
-        <pathelement location="../../../java/aspectj1.6/lib/org.aspectj.matcher.jar"/>
     </path>
     <path id="CGLib-2.2.2.userclasspath">
         <pathelement location="../../../java/cglib-2.2.2/cglib-nodep-2.2.2.jar"/>
     </path>
     <path id="Ehcache-2.4.4.userclasspath">
         <pathelement location="../../../java/ehcache-2.4.4/lib/ehcache-core-2.4.4.jar"/>
-        <pathelement location="../../../java/ehcache-2.4.4/lib/ehcache-terracotta-2.4.4.jar"/>
-        <pathelement location="../../../java/ehcache-2.4.4/lib/slf4j-api-1.6.1.jar"/>
-        <pathelement location="../../../java/ehcache-2.4.4/lib/slf4j-jdk14-1.6.1.jar"/>
-        <pathelement location="../../../java/ehcache-2.4.4/lib/terracotta-toolkit-1.3-runtime-3.2.0.jar"/>
     </path>
-    <path id="Hector-0.7.0-30.userclasspath">
-        <pathelement location="../../../java/rantav-hector-767afa1/core/target/hector-core-0.7.0-30.jar"/>
-        <pathelement location="../../../java/hector-core-0.7.0-30/guava-r08.jar"/>
-        <pathelement location="../../../java/hector-core-0.7.0-30/uuid-3.2.0.jar"/>
+    <path id="Hector-1.0-with-deps.userclasspath">
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/commons-lang-2.4.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/commons-pool-1.5.3.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/FastInfoset-1.2.2.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/guava-r09.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/hector-core-1.0-1-sources.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/hector-core-1.0-1-tests.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/hector-core-1.0-1.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/libthrift-0.6.1.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/slf4j-api-1.6.1.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/speed4j-0.9.jar"/>
+        <pathelement location="../../../java/lib/hector-1.0/hector-core-1.0-1/uuid-3.2.0.jar"/>
     </path>
     <path id="HighScale-1.1.1.userclasspath">
         <pathelement location="../../../java/hector-core-0.7.0-29/high-scale-lib-1.1.1.jar"/>
@@ -46,20 +48,18 @@
         <pathelement location="../../../java/jdom-1.1.1/build/jdom.jar"/>
     </path>
     <path id="JMock-2.5.1.userclasspath">
-        <pathelement location="../../../java/jmock-2.5.1/hamcrest-library-1.1.jar"/>
-        <pathelement location="../../../java/jmock-2.5.1/hamcrest-core-1.1.jar"/>
-        <pathelement location="../../../java/jmock-2.5.1/jmock-junit4-2.5.1.jar"/>
         <pathelement location="../../../java/jmock-2.5.1/jmock-2.5.1.jar"/>
+        <pathelement location="../../../java/jmock-2.5.1/jmock-junit4-2.5.1.jar"/>
     </path>
     <path id="Log4j-1.2.8.userclasspath">
         <pathelement location="../../../common/lib/log4j/log4j-1.2.8.jar"/>
     </path>
-    <path id="Perf4J-0.9.13.userclasspath">
-        <pathelement location="../../../java/perf4j-0.9.13.jar"/>
+    <path id="Perf4j-0.9.12.userclasspath">
+        <pathelement location="../../../java/hector-core-0.7.0-30/perf4j-0.9.12.jar"/>
     </path>
     <path id="SLF4J-1.6.1.userclasspath">
-        <pathelement location="../../../java/apache-cassandra-0.7.5/lib/slf4j-log4j12-1.6.1.jar"/>
-        <pathelement location="../../../java/apache-cassandra-0.7.5/lib/slf4j-api-1.6.1.jar"/>
+        <pathelement location="../../../java/lib/SLF4J-1.6.1/jul-to-slf4j-1.6.1.jar"/>
+        <pathelement location="../../../java/lib/SLF4J-1.6.1/slf4j-api-1.6.1.jar"/>
     </path>
     <path id="Spring-2.5.6.userclasspath">
         <pathelement location="../../../java/spring-framework-2.5.6.SEC02/dist/spring.jar"/>
@@ -76,82 +76,40 @@
         <pathelement location="${ECLIPSE_HOME}/plugins/org.junit_4.8.2.v4_8_2_v20110321-1705/junit.jar"/>
         <pathelement location="${ECLIPSE_HOME}/plugins/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
     </path>
-    <path id="Apache-Commons.userclasspath">
+    <path id="Apache-Commons-Lang-2.1.userclasspath">
         <pathelement location="../../../common/lib/apache-commons/commons-lang-2.1.jar"/>
     </path>
     <path id="Java - OpenSource - Apollo.classpath">
         <pathelement location="bin"/>
-        <path refid="Apache-Cassandra-0.7.5.userclasspath"/>
-        <path refid="Apache-Thrift-0.5.userclasspath"/>
+        <path refid="Apache-Cassandra-1.0.6.userclasspath"/>
+        <path refid="Apache-Thrift-0.6.userclasspath"/>
         <path refid="AspectJ-1.6.11.userclasspath"/>
         <path refid="CGLib-2.2.2.userclasspath"/>
         <path refid="Ehcache-2.4.4.userclasspath"/>
-        <path refid="Hector-0.7.0-30.userclasspath"/>
+        <path refid="Hector-1.0-with-deps.userclasspath"/>
         <path refid="HighScale-1.1.1.userclasspath"/>
         <path refid="JDOM-1.1.1.userclasspath"/>
         <path refid="JMock-2.5.1.userclasspath"/>
         <path refid="Log4j-1.2.8.userclasspath"/>
-        <path refid="Perf4J-0.9.13.userclasspath"/>
+        <path refid="Perf4j-0.9.12.userclasspath"/>
         <path refid="SLF4J-1.6.1.userclasspath"/>
         <path refid="Spring-2.5.6.userclasspath"/>
         <path refid="Xerces.userclasspath"/>
         <path refid="XPath.userclasspath"/>
         <path refid="JUnit 4.libraryclasspath"/>
-        <path refid="Apache-Commons.userclasspath"/>
+        <path refid="Apache-Commons-Lang-2.1.userclasspath"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
         <copy includeemptydirs="false" todir="bin">
             <fileset dir="src">
-                <exclude name="**/*.uad"/>
-                <exclude name="**/*.ucd"/>
-                <exclude name="**/*.uld"/>
-                <exclude name="**/*.upd"/>
-                <exclude name="**/*.udd"/>
-                <exclude name="**/*.uod"/>
-                <exclude name="**/*.usd"/>
-                <exclude name="**/*.utd"/>
-                <exclude name="**/*.uud"/>
-                <exclude name="**/*.odd"/>
-                <exclude name="**/*.ead"/>
-                <exclude name="**/*.ecd"/>
-                <exclude name="**/*.eld"/>
-                <exclude name="**/*.epd"/>
-                <exclude name="**/*.edd"/>
-                <exclude name="**/*.eod"/>
-                <exclude name="**/*.esd"/>
-                <exclude name="**/*.etd"/>
-                <exclude name="**/*.eud"/>
-                <exclude name="**/*.urd"/>
-                <exclude name="**/*.uml"/>
-                <exclude name="**/*.ecore"/>
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
         <copy includeemptydirs="false" todir="bin">
             <fileset dir="test">
-                <exclude name="**/*.uad"/>
-                <exclude name="**/*.ucd"/>
-                <exclude name="**/*.uld"/>
-                <exclude name="**/*.upd"/>
-                <exclude name="**/*.udd"/>
-                <exclude name="**/*.uod"/>
-                <exclude name="**/*.usd"/>
-                <exclude name="**/*.utd"/>
-                <exclude name="**/*.uud"/>
-                <exclude name="**/*.odd"/>
-                <exclude name="**/*.ead"/>
-                <exclude name="**/*.ecd"/>
-                <exclude name="**/*.eld"/>
-                <exclude name="**/*.epd"/>
-                <exclude name="**/*.edd"/>
-                <exclude name="**/*.eod"/>
-                <exclude name="**/*.esd"/>
-                <exclude name="**/*.etd"/>
-                <exclude name="**/*.eud"/>
-                <exclude name="**/*.urd"/>
-                <exclude name="**/*.uml"/>
-                <exclude name="**/*.ecore"/>
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
@@ -194,27 +152,43 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
-    <target name="CoreTest">
+    <target name="SessionFactoryImpl_Functionality_Test">
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="org.apollo.orm.CoreTest" todir="${junit.output.dir}"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>
-    <target name="CriteriaImplTest">
+    <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsProperty">
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="org.apollo.orm.CriteriaImplTest" todir="${junit.output.dir}"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>
-    <target name="CriteriaImplTest.testGetOrderedKeys">
+    <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsPropertyLazyLoaded">
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="org.apollo.orm.CriteriaImplTest" todir="${junit.output.dir}"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+            <classpath refid="Java - OpenSource - Apollo.classpath"/>
+        </junit>
+    </target>
+    <target name="SessionFactoryImpl_Functionality_Test.testMapProp_LazyLoaded">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+            <classpath refid="Java - OpenSource - Apollo.classpath"/>
+        </junit>
+    </target>
+    <target name="SessionFactoryImpl_Functionality_Test.testSetProprety_WithPaging">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>

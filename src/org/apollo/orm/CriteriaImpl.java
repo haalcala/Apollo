@@ -63,7 +63,7 @@ public class CriteriaImpl<T> implements Criteria<T> {
 				}
 			}
 			else {
-				add(Expression.eq(SYS_COL_RSTAT, "0"));
+				add(Expression.eq(cc.getRStatColumnName(), "0"));
 				
 				Map<String, Map<String, Serializable>> rows = cf.findColumnWithValue(criterias, session, cc, cc.getColumnsAsList());
 				
