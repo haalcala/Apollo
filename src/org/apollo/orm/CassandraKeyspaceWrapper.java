@@ -115,7 +115,7 @@ public class CassandraKeyspaceWrapper {
 		logger.debug(cluster.describeKeyspace(keyspace));
 		
 		if (cacheManager == null && cache_conf != null) {
-			cacheManager = new CacheManager(cache_conf);
+			cacheManager = new CacheManager(ClassLoader.getSystemResource(cache_conf));
 		}
 	}
 	
