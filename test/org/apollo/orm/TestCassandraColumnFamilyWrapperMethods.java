@@ -1,39 +1,27 @@
 package org.apollo.orm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.io.InputStream;
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.swing.RowFilter.ComparisonType;
-
 import me.prettyprint.cassandra.serializers.LongSerializer;
 import me.prettyprint.hector.api.ddl.ColumnDefinition;
 import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
-import me.prettyprint.hector.api.ddl.ColumnIndexType;
-import me.prettyprint.hector.api.ddl.ColumnType;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
 
 import org.apache.cassandra.db.marshal.LongType;
-import org.apache.log4j.Logger;
-import org.apollo.orm.CassandraColumnFamilyWrapper;
-import org.apollo.orm.CassandraKeyspaceWrapper;
-import org.apollo.orm.GetColumnsHandlerAdapter;
-import org.apollo.orm.GetSuperColumnsHandlerAdapter;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author   harold
@@ -41,7 +29,7 @@ import org.junit.Test;
 public class TestCassandraColumnFamilyWrapperMethods {
 	/**
 	 */
-	private Logger logger = Logger.getLogger(getClass());
+	private Logger logger = LoggerFactory.getLogger(getClass());
 
 	private static Properties config;
 	/**

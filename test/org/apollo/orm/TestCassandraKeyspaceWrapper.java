@@ -1,31 +1,25 @@
 package org.apollo.orm;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Properties;
 
 import me.prettyprint.hector.api.Keyspace;
 
-import org.apache.log4j.Logger;
-import org.apollo.orm.CassandraColumnFamilyWrapper;
-import org.apollo.orm.CassandraKeyspaceWrapper;
-import org.apollo.orm.GetColumnsHandlerAdapter;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author   harold
  */
 public class TestCassandraKeyspaceWrapper implements TestConstants {
-	static Logger logger = Logger.getLogger(TestCassandraKeyspaceWrapper.class);
+	static Logger logger = LoggerFactory.getLogger(TestCassandraKeyspaceWrapper.class);
 	
 	private static Properties config;
 	

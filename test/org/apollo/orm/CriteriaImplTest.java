@@ -4,22 +4,21 @@ import static org.junit.Assert.*;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CriteriaImplTest {
-	Logger logger = Logger.getLogger(CriteriaImplTest.class);
+	Logger logger = LoggerFactory.getLogger(CriteriaImplTest.class);
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -90,8 +89,8 @@ public class CriteriaImplTest {
 		
 		List<String> orderedKeys = CriteriaImpl.getOrderedKeys(order, rows);
 		
-		logger.info(rows);
-		logger.info(orderedKeys);
+		logger.info("" + rows);
+		logger.info("" + orderedKeys);
 		
 		Iterator<String> it = orderedKeys.iterator();
 		

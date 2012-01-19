@@ -7,13 +7,12 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
-import me.prettyprint.cassandra.utils.TimeUUIDUtils;
-
-import org.apache.log4j.Logger;
 import org.apollo.orm.ApolloConstants.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApolloListImpl<T> implements ApolloList<T> {
-	private Logger logger = Logger.getLogger(getClass());
+	private Logger logger = LoggerFactory.getLogger(getClass());
 	
 	private String rowKey;
 	

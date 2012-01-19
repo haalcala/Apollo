@@ -1,23 +1,20 @@
 package org.apollo.orm;
 
+import static org.apollo.orm.ApolloConstants.*;
+
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
-import org.apache.log4j.Logger;
-
-import org.apache.log4j.Logger;
-import static org.apollo.orm.ApolloConstants.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CriteriaImpl<T> implements Criteria<T> {
-	private static Logger logger = Logger.getLogger(CriteriaImpl.class);
+	private static Logger logger = LoggerFactory.getLogger(CriteriaImpl.class);
 	
 	private SessionImpl session;
 	

@@ -5,12 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-import org.apollo.orm.ApolloConstants.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ApolloMapImpl<T> implements Map<String, T> {
-	private static Logger logger = Logger.getLogger(ApolloMap.class);
+	private static Logger logger = LoggerFactory.getLogger(ApolloMap.class);
 
 	private Map<String, T> map;
 	private CassandraColumnFamilyWrapper cf;

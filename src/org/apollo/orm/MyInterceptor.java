@@ -1,20 +1,14 @@
 package org.apollo.orm;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import org.apache.log4j.Logger;
-
-import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class MyInterceptor implements MethodInterceptor {
-	private Logger logger = Logger.getLogger(MyInterceptor.class);
+	private Logger logger = LoggerFactory.getLogger(MyInterceptor.class);
 
 	private Object realObj;
 	private ClassConfig classConfig;

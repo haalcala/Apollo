@@ -18,8 +18,9 @@ import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
 
-import org.apache.log4j.Logger;
 import org.apollo.orm.ApolloConstants.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class CassandraKeyspaceWrapper {
@@ -42,7 +43,7 @@ public class CassandraKeyspaceWrapper {
 	public static final String VAL_KEYS = "KEYS";
 	public static final String VAL_SUPER = "Super";
 
-	private static Logger logger = Logger.getLogger(CassandraKeyspaceWrapper.class);
+	private static Logger logger = LoggerFactory.getLogger(CassandraKeyspaceWrapper.class);
 	
 	private Keyspace keyspace;
 
@@ -112,7 +113,7 @@ public class CassandraKeyspaceWrapper {
 		this.keyspace = HFactory.createKeyspace(keyspace, cluster);
 		
 		logger.debug("Describing cluster ...");
-		logger.debug(cluster.describeKeyspace(keyspace));
+		logger.debug(cluster.describeKeyspace(keyspace).toString());
 		
 		if (cacheManager == null && cache_conf != null) {
 			cacheManager = new CacheManager(ClassLoader.getSystemResource(cache_conf));

@@ -1,5 +1,7 @@
 package org.apollo.orm;
 
+import static org.junit.Assert.*;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -7,15 +9,14 @@ import java.util.Properties;
 
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 
-import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApolloIteratorImplTest {
 	
-	static Logger logger = Logger.getLogger(ApolloIteratorImplTest.class);
+	static Logger logger = LoggerFactory.getLogger(ApolloIteratorImplTest.class);
 	
 	static Properties conf;
 	

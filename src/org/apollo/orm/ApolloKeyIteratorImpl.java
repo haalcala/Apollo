@@ -5,10 +5,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApolloKeyIteratorImpl implements ApolloIterator<String> {
-	Logger logger = Logger.getLogger(getClass());
+	Logger logger = LoggerFactory.getLogger(getClass());
 	
 	private String rowKey;
 	

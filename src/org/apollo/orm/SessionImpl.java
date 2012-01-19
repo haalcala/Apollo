@@ -3,10 +3,8 @@ package org.apollo.orm;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,10 +17,11 @@ import net.sf.cglib.proxy.Enhancer;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionImpl implements Session, ApolloConstants {
-	private static Logger logger = Logger.getLogger(SessionImpl.class);
+	private static Logger logger = LoggerFactory.getLogger(SessionImpl.class);
 	
 	private static final String CACHE_NAME = "apollo";
 
