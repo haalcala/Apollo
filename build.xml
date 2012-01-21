@@ -10,12 +10,44 @@
     <property name="i-POP Analytics - Common.location" value="../../i-POP Analytics/Common"/>
     <property name="junit.output.dir" value="junit"/>
     <property name="debuglevel" value="source,lines,vars"/>
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+    <property name="target" value="1.5"/>
+    <property name="source" value="1.5"/>
+	
+	<property name="dist.dir" value="dist" />
+	<property name="bin.dir" value="bin" />
+	
+    <property name="dist.file" value="apollo"/>
+    <property name="jar.file" value="${dist.file}.jar"/>
+	
+    <path id="Apache-Cassandra-0.7.5.userclasspath">
+        <pathelement location="../../../java/apache-cassandra-0.7.5/lib/apache-cassandra-0.7.5.jar"/>
+=======
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
     <path id="Apache-Cassandra-1.0.6.userclasspath">
         <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-1.0.6.jar"/>
         <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-clientutil-1.0.6.jar"/>
         <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-thrift-1.0.6.jar"/>
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+    <path id="Apache-Cassandra-1.0.6.userclasspath">
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-1.0.6.jar"/>
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-clientutil-1.0.6.jar"/>
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-thrift-1.0.6.jar"/>
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+    <path id="Apache-Cassandra-1.0.6.userclasspath">
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-1.0.6.jar"/>
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-clientutil-1.0.6.jar"/>
+        <pathelement location="../../../java/cassandra/apache-cassandra-1.0.6/lib/apache-cassandra-thrift-1.0.6.jar"/>
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
     </path>
     <path id="Apache-Thrift-0.6.userclasspath"/>
     <path id="AspectJ-1.6.11.userclasspath">
@@ -101,6 +133,8 @@
     </path>
     <target name="init">
         <mkdir dir="bin"/>
+        <mkdir dir="${dist.dir}"/>
+    	
         <copy includeemptydirs="false" todir="bin">
             <fileset dir="src">
                 <exclude name="**/*.launch"/>
@@ -114,23 +148,36 @@
             </fileset>
         </copy>
     </target>
+	
     <target name="clean">
         <delete dir="bin"/>
     </target>
+	
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project" name="build"/>
     <target name="build-subprojects"/>
+	
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
+        
+    	<javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
             <src path="src"/>
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </javac>
+    	
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
             <src path="test"/>
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </javac>
+    	
+    	<delete file="${dist.dir}/${jar.file}" />
+    	
+    	<jar destfile="${dist.dir}/${jar.file}">
+    		<fileset dir="${bin.dir}" defaultexcludes="true">
+    		</fileset>
+    	</jar>
     </target>
+	
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
         <ant antfile="build.xml" dir="${i-POP Analytics - Common.location}" inheritAll="false" target="clean"/>
         <ant antfile="build.xml" dir="${i-POP Analytics - Common.location}" inheritAll="false" target="build">
@@ -139,6 +186,7 @@
             </propertyset>
         </ant>
     </target>
+	
     <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
         <copy todir="${ant.library.dir}">
             <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
@@ -148,11 +196,25 @@
             <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
         </unzip>
     </target>
+	
     <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+	
+    <target name="CoreTest">
+=======
     <target name="SessionFactoryImpl_Functionality_Test">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <target name="SessionFactoryImpl_Functionality_Test">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <target name="SessionFactoryImpl_Functionality_Test">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
@@ -160,7 +222,20 @@
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+	
+    <target name="CriteriaImplTest">
+=======
     <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsProperty">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsProperty">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsProperty">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
@@ -168,11 +243,62 @@
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+	
+    <target name="CriteriaImplTest.testGetOrderedKeys">
+=======
     <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsPropertyLazyLoaded">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsPropertyLazyLoaded">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+=======
+    <target name="SessionFactoryImpl_Functionality_Test.testMapOfMapsPropertyLazyLoaded">
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
             <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+            <classpath refid="Java - OpenSource - Apollo.classpath"/>
+        </junit>
+    </target>
+    <target name="SessionFactoryImpl_Functionality_Test.testMapProp_LazyLoaded">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+            <classpath refid="Java - OpenSource - Apollo.classpath"/>
+        </junit>
+    </target>
+    <target name="SessionFactoryImpl_Functionality_Test.testSetProprety_WithPaging">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
+            <classpath refid="Java - OpenSource - Apollo.classpath"/>
+        </junit>
+    </target>
+    <target name="SessionFactoryImpl_Functionality_Test.testMapProp_LazyLoaded">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+            <classpath refid="Java - OpenSource - Apollo.classpath"/>
+        </junit>
+    </target>
+    <target name="SessionFactoryImpl_Functionality_Test.testSetProprety_WithPaging">
+        <mkdir dir="${junit.output.dir}"/>
+        <junit fork="yes" printsummary="withOutAndErr">
+            <formatter type="xml"/>
+            <test name="org.apollo.orm.SessionFactoryImpl_Functionality_Test" todir="${junit.output.dir}"/>
+>>>>>>> branch 'master' of https://github.com/haalcala/Apollo.git
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>
@@ -192,6 +318,7 @@
             <classpath refid="Java - OpenSource - Apollo.classpath"/>
         </junit>
     </target>
+	
     <target name="junitreport">
         <junitreport todir="${junit.output.dir}">
             <fileset dir="${junit.output.dir}">
