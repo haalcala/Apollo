@@ -74,8 +74,8 @@ public class CassandraKeyspaceWrapper {
 		
 		int clusterMaxActive = getIntValue(config, CONF_CLUSTER_MAXACTIVE, 30) * 10;
 		// int clusterMaxIdle = getIntValue(config, CONF_CLUSTER_MAXIDLE, 5);
-		int cassandraThriftSocketTimeout = getIntValue(config, CONF_CLUSTER_THRIFT_SOCKET_TIMEOUT, 3000);
-		int maxWaitTimeWhenExhausted = getIntValue(config, CONF_CLUSTER_WAIT_TIMEOUT_WHEN_EXHAUSTED, 4000);
+		int cassandraThriftSocketTimeout = getIntValue(config, CONF_CLUSTER_THRIFT_SOCKET_TIMEOUT, 0);
+		int maxWaitTimeWhenExhausted = getIntValue(config, CONF_CLUSTER_WAIT_TIMEOUT_WHEN_EXHAUSTED, 0);
 		String cache_conf = config.getProperty(CONF_CACHE_CONF);
 		boolean auto_discover_hosts = Util.getBooleanValue(config.getProperty(CONF_CLUSTER_AUTO_DISCOVER_HOSTS), false);
 		
